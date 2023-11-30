@@ -6,29 +6,41 @@ library(ggplot2)
 
 
 
-server <- function(input, output) {
-  path <- "rasters/PRS_L2D_STD_20221210_HCO_VNIR_SWIR_mosaic_updated_georegistration.tif"
+server <- function(input, output, session) {
+  shinyFileChoose(
+    input, 'raster_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif')
+    )
   
-  raster <- rast(path)
-  r_crs <- crs(raster, describe = T)$code
+  raster_path_tbl <- reactive({
+    parseFilePaths(c(wd = "."), input$raster_file)
+  })
+  
+  path <- reactive({ raster_path_tbl()$datapath })
+  
+  raster <- reactive({ rast(path()) })
+  r_crs <- reactive({ crs(raster(), describe = T)$code })
   
   #raster_stars <- stars::read_stars(path)
   
   output$map <- renderLeaflet({
-    input$reset
+    req(path())
     
-    leaflet() %>% 
+    input$reset
+
+    leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
-      ) %>% 
+      ) %>%
       leafem::addGeotiff(
-        file = path, bands = 40, opacity = 0.6, 
+        file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
         colorOptions = leafem::colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
         resolution = 72
-      ) %>% 
+      ) %>%
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
@@ -40,7 +52,7 @@ server <- function(input, output) {
       c(input$map_click[["lng"]], input$map_click[["lat"]])
     ) %>% 
       st_sfc(crs = 4326) %>% 
-      st_transform(as.numeric(r_crs)) %>% 
+      st_transform(as.numeric(r_crs())) %>% 
       st_coordinates()
   })
   
@@ -52,7 +64,7 @@ server <- function(input, output) {
     loc <- clicked_coords()
 
     vals <- 
-      extract(raster, loc, cell = T) %>% 
+      extract(raster(), loc, cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
       rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
@@ -85,7 +97,7 @@ server <- function(input, output) {
       ) +
       labs(
         title = paste("Cell number:", title, collapse = ""),
-        subtitle = basename(path),
+        subtitle = basename(path()),
         x = "wavelength (nm)",
         y = "reflectance"
       ) +
@@ -106,14 +118,14 @@ server <- function(input, output) {
       input$map_click[["lat"]]
       ) 
     
-    loc <- cellFromXY(raster, clicked_coords())
+    loc <- cellFromXY(raster(), clicked_coords())
     
     wellPanel(
       h4(
         "Copy cell into R, or use ", 
         code(glue::glue("raster[{loc}]"))
         ),
-      pre(glue::glue("st_read('{gj}') %>%\n  st_transform({r_crs})"))
+      pre(glue::glue("st_read('{gj}') %>%\n  st_transform({r_crs()})"))
     )
   })
   
