@@ -8,7 +8,11 @@ ui <- fluidPage(
 
   wellPanel(
     actionButton("reset", "Reset View"),
-    "Some interactive tools for selecting things..."
+    radioButtons(
+      inputId = "wv_labels", "How are the bands labelled?", 
+      choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
+      choiceValues = c("Sequential", "Numeric")
+      )
   ),
   
   fluidRow(
