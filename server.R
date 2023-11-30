@@ -58,14 +58,14 @@ server <- function(input, output) {
       tidyr::pivot_longer(cols = -cell) %>% 
       rename(band = name, reflectance = value) 
       
-    if (input$wv_labels == "Sequential"){
-      vals<-mutate(vals, 
+    if (input$wv_labels == "Sequential") {
+      vals <- mutate(vals, 
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
         )
-    } else if (input$wv_labels == "Numeric"){
-      vals<-mutate(vals, 
+    } else if (input$wv_labels == "Numeric") {
+      vals <- mutate(vals, 
         band = as.numeric(band),
         wv = band,
         src = 1
