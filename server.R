@@ -22,38 +22,17 @@ server <- function(input, output) {
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>% 
-      # leafem::addGeoRaster(
-      #   raster_stars[,,,40], opacity = 0.6, 
-      #   colorOptions = colorOptions(
-      #     palette = c("#00000000", rev(viridis::magma(255)))
-      #   ),
-      #   resolution = 48
-      # ) %>%
       leafem::addGeotiff(
         file = path, bands = 40, opacity = 0.6, 
         colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
-        resolution = 48
+        resolution = 72
       ) %>% 
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
       )
-
-    
-    # plet(
-    #   raster, legend = NULL, y = 40,
-    #   col = rev(viridis::magma(255)), alpha = 0.6
-    # ) %>% 
-    #   addProviderTiles(
-    #     "CartoDB.Positron",
-    #     options = providerTileOptions(zIndex = 0, opacity = 1, attribution = "")
-    #   ) %>%
-    #   addProviderTiles(
-    #     "CartoDB.PositronOnlyLabels",
-    #     options = providerTileOptions(opacity = 0.75, attribution = "")
-    #   )
   })
   
   clicked_coords <- reactive({
