@@ -12,7 +12,7 @@ server <- function(input, output) {
   raster <- rast(path)
   r_crs <- crs(raster, describe = T)$code
   
-  raster_stars <- stars::read_stars(path)
+  #raster_stars <- stars::read_stars(path)
   
   output$map <- renderLeaflet({
     input$reset
@@ -24,7 +24,7 @@ server <- function(input, output) {
       ) %>% 
       leafem::addGeotiff(
         file = path, bands = 40, opacity = 0.6, 
-        colorOptions = colorOptions(
+        colorOptions = leafem::colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
         resolution = 72
@@ -47,19 +47,30 @@ server <- function(input, output) {
   output$plot <- renderPlot({
     
     req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_labels)
     
     loc <- clicked_coords()
 
     vals <- 
       extract(raster, loc, cell = T) %>% 
-      rename_all(~stringr::str_extract(., "cell$|[0-9]+$")) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) %>% 
-      mutate(
+      rename(band = name, reflectance = value) 
+      
+    if (input$wv_labels == "Sequential"){
+      vals<-mutate(vals, 
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
         )
+    } else if (input$wv_labels == "Numeric"){
+      vals<-mutate(vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
     
     title <- unique(vals$cell)
     
