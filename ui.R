@@ -8,7 +8,8 @@ rast_picker <-
     label = 'Choose local raster', 
     title = 'Select a raster',
     multiple = F
-    )
+    ) %>% 
+  div(style = "padding-bottom: 1em;")
 
 vect_picker <- 
   shinyFilesButton(
@@ -16,7 +17,9 @@ vect_picker <-
     label = 'Choose local points or polygons', 
     title = 'Select vector file(s)',
     multiple = T
-  )
+  ) %>% 
+  div(style = "padding-bottom: 1em;")
+
 
 wv_picker <- 
   radioButtons(
@@ -36,15 +39,22 @@ plot_panel <-
     )
   )
 
+jump_box <- 
+  textInput(
+    "jump_text", 
+    "Paste coords to jump",
+    placeholder = "e.g. 39.03,-76.93 (any order)"
+    )
+
 
 ui <- fluidPage(
   
   titlePanel("PRISMA Pixel View"),
-
+  #actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
-      column(4, rast_picker, vect_picker),
-      column(4, uiOutput("vector_selections")), 
+      column(4, rast_picker, jump_box),
+      column(4, vect_picker, uiOutput("vector_selections")), 
       column(4, wv_picker)
     )
   ),

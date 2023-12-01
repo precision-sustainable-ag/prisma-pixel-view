@@ -8,6 +8,11 @@ library(leafem)
 
 
 server <- function(input, output, session) {
+
+  observeEvent(input$browser,{
+    browser()
+  })
+  
   shinyFileChoose(
     input, 'raster_file', 
     roots = c(wd = '.'), 
@@ -44,7 +49,7 @@ server <- function(input, output, session) {
   
   output$vector_selections <- renderUI({
     selectizeInput(
-      "vector_show_hide", NULL,
+      "vector_show_hide", HTML("&nbsp;"),
       choices = basename(v$names),
       selected = basename(v$names),
       multiple = T
@@ -112,13 +117,74 @@ server <- function(input, output, session) {
     }
   )
   
-  clicked_coords <- reactive({
-    st_point(
-      c(input$map_click[["lng"]], input$map_click[["lat"]])
-    ) %>% 
-      st_sfc(crs = 4326) %>% 
-      st_transform(r_crs()) %>% 
+  typed_coords <- reactiveValues(pt = NULL)
+  
+  observeEvent(
+    input$jump_text, {
+    jump_c <- 
+      stringr::str_extract_all(
+        input$jump_text, 
+        "[-+]?[0-9]+\\.?[0-9]*"
+      )[[1]] %>% 
+      as.numeric() %>% 
+      na.omit()
+
+    if (length(jump_c) < 2) {
+      leafletProxy("map") %>%
+        removeMarker("typed_point")
+    }
+    
+    req(length(jump_c) == 2)
+
+    if (any(abs(jump_c) > 180)) {
+      # reproject
+    }
+
+    cands <- list(jump_c, rev(jump_c))
+    mc <- input$map_center
+     
+    d <- purrr::map_dbl(
+      cands,
+      ~(.x[1] - mc[["lng"]])^2 + (.x[2] - mc[["lat"]])^2
+    )
+    
+    coords <- cands[[which.min(d)]]
+
+    leafletProxy("map") %>%
+      addCircleMarkers(
+        lng = coords[1], lat = coords[2],
+        layerId = "typed_point"
+      )
+
+    typed_coords$pt <- 
+      st_point(coords) %>%
+      st_sfc(crs = 4326) %>%
+      st_transform(r_crs()) %>%
       st_coordinates()
+  })
+  
+  observeEvent(
+    input$map_click, {
+      updateTextInput(
+        inputId = "jump_text",
+        value = ""
+      )
+      
+      typed_coords$pt <- NULL
+    }
+  )
+  
+  clicked_coords <- reactive({
+    if (is.null(typed_coords$pt)) {
+      st_point(
+        c(input$map_click[["lng"]], input$map_click[["lat"]])
+      ) %>% 
+        st_sfc(crs = 4326) %>% 
+        st_transform(r_crs()) %>% 
+        st_coordinates()
+    } else {
+      typed_coords$pt
+    }
   })
   
   reflectance_at_point <- reactive({
