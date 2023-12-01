@@ -3,6 +3,7 @@ library(terra)
 library(sf)
 library(dplyr)
 library(ggplot2)
+library(leafem)
 
 
 
@@ -13,30 +14,46 @@ server <- function(input, output, session) {
     filetypes = c('tif')
     )
   
-  raster_path_tbl <- reactive({
-    parseFilePaths(c(wd = "."), input$raster_file)
-  })
+  shinyFileChoose(
+    input, 'vector_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('shp', 'geojson')
+  )
   
-  path <- reactive({ raster_path_tbl()$datapath })
+  path <- reactive({
+    parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
+  })
   
   raster <- reactive({ rast(path()) })
   r_crs <- reactive({ crs(raster(), describe = T)$code })
   
-  #raster_stars <- stars::read_stars(path)
+
+  vector_path <- reactive({
+    parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
+  })
+  
+  # vector <- reactive({ read_sf(vector_path()) })
   
   output$map <- renderLeaflet({
     req(path())
     
     input$reset
 
-    leaflet() %>%
+    bb <- 
+      as.polygons(raster(), extent = T) %>% 
+      st_as_sf() %>% 
+      st_transform(4326) %>% 
+      st_bbox()
+    
+    l <- 
+      leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>%
-      leafem::addGeotiff(
+      addGeotiff(
         file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
-        colorOptions = leafem::colorOptions(
+        colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
         resolution = 72
@@ -44,8 +61,35 @@ server <- function(input, output, session) {
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
+      ) %>% 
+      addHomeButton(
+        ext = bb, position = "topleft",
+        group = "↺ Reset"
       )
+    
+    l
   })
+  
+  
+  observeEvent(
+    vector_path(), {
+      req(length(vector_path()) > 0)
+
+      leafletProxy("map") %>% 
+        addGeoJSON(
+          geojson = readr::read_lines(vector_path()) %>% paste(collapse = "\n"),
+          layerId = "vector"
+        )
+    }
+  )
+  
+  observeEvent(
+    input$clear_vector, {
+
+      leafletProxy("map") %>%
+        removeGeoJSON("vector")
+    }
+  )
   
   clicked_coords <- reactive({
     st_point(
@@ -56,37 +100,60 @@ server <- function(input, output, session) {
       st_coordinates()
   })
   
-  output$plot <- renderPlot({
-    
+  reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
     
-    loc <- clicked_coords()
-
     vals <- 
-      extract(raster(), loc, cell = T) %>% 
+      extract(raster(), clicked_coords(), cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
       rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
       rename(band = name, reflectance = value) 
-      
+    
     if (input$wv_labels == "Sequential") {
-      vals <- mutate(vals, 
+      vals <- mutate(
+        vals, 
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
-        )
+      )
     } else if (input$wv_labels == "Numeric") {
-      vals <- mutate(vals, 
+      vals <- mutate(
+        vals, 
         band = as.numeric(band),
         wv = band,
         src = 1
       )
     }
     
-    title <- unique(vals$cell)
+    vals
+  })
+  
+  
+  plot_ranges <- reactiveValues(x = NULL, y = NULL)
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  observeEvent(
+    input$plot_dblclick, {
+      brush <- input$plot_brush
+      # sets these to NULL when `brush` is NULL
+      plot_ranges$x <- c(brush$xmin, brush$xmax)
+      plot_ranges$y <- c(brush$ymin, brush$ymax)
+    }
+  )
+  
+  
+  output$plot <- renderPlot({
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_labels)
     
-    ggplot(vals, aes(wv, reflectance)) +
+    focus_tag <- if (!is.null(plot_ranges$x)) { " , subset of values" }
+    cell_id <- unique(reflectance_at_point()$cell)
+    title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
+    
+    ggplot(reflectance_at_point(), aes(wv, reflectance)) +
       geom_line(aes(group = src)) +
       scale_y_continuous(
         #breaks = function(lmts) {seq(0, max(lmts) + 0.05, by = 0.05)}
@@ -96,11 +163,12 @@ server <- function(input, output, session) {
         breaks = seq(400, 2400, by = 200),
       ) +
       labs(
-        title = paste("Cell number:", title, collapse = ""),
+        title = title,
         subtitle = basename(path()),
         x = "wavelength (nm)",
         y = "reflectance"
       ) +
+      coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
       theme(
         title = element_text(size = 14),

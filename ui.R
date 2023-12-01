@@ -6,9 +6,17 @@ rast_picker <-
   shinyFilesButton(
     'raster_file', 
     label = 'Choose local raster', 
-    title = 'Please select a file',
+    title = 'Select a raster',
     multiple = F
     )
+
+vect_picker <- 
+  shinyFilesButton(
+    'vector_file', 
+    label = 'Choose local points or polygons', 
+    title = 'Please vector files',
+    multiple = F
+  )
 
 wv_picker <- 
   radioButtons(
@@ -18,6 +26,16 @@ wv_picker <-
   )
 
 
+plot_panel <- 
+  plotOutput(
+    "plot", height = "60vh",
+    dblclick = "plot_dblclick",
+    brush = brushOpts(
+      id = "plot_brush",
+      resetOnNew = T
+    )
+  )
+
 
 ui <- fluidPage(
   
@@ -25,16 +43,15 @@ ui <- fluidPage(
 
   wellPanel(
     fluidRow(
-      column(2, actionButton("reset", "Reset View")),
-      column(2, rast_picker),
-      column(4), # TODO placeholder
+      column(4, rast_picker, vect_picker),
+      column(4, actionButton("clear_vector", "Clear shapes")), 
       column(4, wv_picker)
     )
   ),
 
   fluidRow(
     column(6, leafletOutput("map", height = "60vh")),
-    column(6, plotOutput("plot", height = "60vh"))
+    column(6, plot_panel)
   ),
   
   br(),
