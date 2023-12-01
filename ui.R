@@ -14,8 +14,8 @@ vect_picker <-
   shinyFilesButton(
     'vector_file', 
     label = 'Choose local points or polygons', 
-    title = 'Please vector files',
-    multiple = F
+    title = 'Select vector file(s)',
+    multiple = T
   )
 
 wv_picker <- 
@@ -44,14 +44,14 @@ ui <- fluidPage(
   wellPanel(
     fluidRow(
       column(4, rast_picker, vect_picker),
-      column(4, actionButton("clear_vector", "Clear shapes")), 
+      column(4, uiOutput("vector_selections")), 
       column(4, wv_picker)
     )
   ),
 
   fluidRow(
     column(6, leafletOutput("map", height = "60vh")),
-    column(6, plot_panel, "Click-and-drag to brush a region, double-click to set/reset selection.")
+    column(6, plot_panel, uiOutput("plot_helper_text"))
   ),
   
   br(),

@@ -25,14 +25,31 @@ server <- function(input, output, session) {
   })
   
   raster <- reactive({ rast(path()) })
-  r_crs <- reactive({ crs(raster(), describe = T)$code })
+  r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
   
 
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
   })
   
-  # vector <- reactive({ read_sf(vector_path()) })
+  v <- reactiveValues(names = character(0))
+  observeEvent(
+    vector_path(), {
+      v$names <- 
+        c(v$names, vector_path()) %>% 
+        unique()
+    }
+  )
+  
+  
+  output$vector_selections <- renderUI({
+    selectizeInput(
+      "vector_show_hide", NULL,
+      choices = basename(v$names),
+      selected = basename(v$names),
+      multiple = T
+    )
+  })
   
   output$map <- renderLeaflet({
     req(path())
@@ -45,8 +62,7 @@ server <- function(input, output, session) {
       st_transform(4326) %>% 
       st_bbox()
     
-    l <- 
-      leaflet() %>%
+    leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
@@ -66,28 +82,33 @@ server <- function(input, output, session) {
         ext = bb, position = "topleft",
         group = "↺ Reset"
       )
-    
-    l
   })
   
   
+  # what a silly hack to make this fire when the list becomes empty
   observeEvent(
-    vector_path(), {
-      req(length(vector_path()) > 0)
+    c(input$vector_show_hide, "___placeholder___"), {
+      req(length(v$names) > 0)
+      
+      to_show <- basename(v$names) %in% input$vector_show_hide
 
-      leafletProxy("map") %>% 
-        addGeoJSON(
-          geojson = readr::read_lines(vector_path()) %>% paste(collapse = "\n"),
-          layerId = "vector"
-        )
-    }
-  )
-  
-  observeEvent(
-    input$clear_vector, {
-
-      leafletProxy("map") %>%
-        removeGeoJSON("vector")
+      purrr::map(
+        v$names[to_show],
+        ~leafletProxy("map") %>% 
+          addGeoJSON(
+            geojson = readr::read_lines(.x) %>% paste(collapse = "\n"),
+            layerId = basename(.x),
+            fillOpacity = 0.1,
+            weight = 2,
+            opacity = 0.3
+          )
+      )
+      
+      purrr::map(
+        v$names[!to_show],
+        ~leafletProxy("map") %>%
+          removeGeoJSON(basename(.x))
+      )
     }
   )
   
@@ -96,7 +117,7 @@ server <- function(input, output, session) {
       c(input$map_click[["lng"]], input$map_click[["lat"]])
     ) %>% 
       st_sfc(crs = 4326) %>% 
-      st_transform(as.numeric(r_crs())) %>% 
+      st_transform(r_crs()) %>% 
       st_coordinates()
   })
   
@@ -110,7 +131,7 @@ server <- function(input, output, session) {
       rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
       rename(band = name, reflectance = value) 
-    
+
     if (input$wv_labels == "Sequential") {
       vals <- mutate(
         vals, 
@@ -146,6 +167,7 @@ server <- function(input, output, session) {
   
   
   output$plot <- renderPlot({
+    req(path())
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
     
@@ -175,6 +197,14 @@ server <- function(input, output, session) {
         axis.text = element_text(size = 14),
         plot.subtitle = element_text(size = 11)
         )
+  })
+  
+  output$plot_helper_text <- renderUI({
+    req(path())
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_labels)
+    
+    div("Click-and-drag to brush a region, double-click to set/reset selection.")
   })
   
   output$selected_point <-  renderUI({
