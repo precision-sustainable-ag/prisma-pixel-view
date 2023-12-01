@@ -121,15 +121,10 @@ server <- function(input, output, session) {
   
   observeEvent(
     input$jump_text, {
-    jump_c <- 
-      stringr::str_extract_all(
-        input$jump_text, 
-        "[-+]?[0-9]+\\.?[0-9]*"
-      )[[1]] %>% 
-      as.numeric() %>% 
-      na.omit()
+      
+    jump_c <- extract_coords_from_string(input$jump_text)
 
-    if (length(jump_c) < 2) {
+    if (length(jump_c) == 0) {
       leafletProxy("map") %>%
         removeMarker("typed_point")
     }
@@ -137,30 +132,20 @@ server <- function(input, output, session) {
     req(length(jump_c) == 2)
 
     if (any(abs(jump_c) > 180)) {
-      # reproject
+      # reproject 
+      #   (move this logic into put_ll_in_order, add crs arg)
     }
 
-    cands <- list(jump_c, rev(jump_c))
-    mc <- input$map_center
-     
-    d <- purrr::map_dbl(
-      cands,
-      ~(.x[1] - mc[["lng"]])^2 + (.x[2] - mc[["lat"]])^2
-    )
+    mc <- input$map_center[c("lng", "lat")] %>% unlist()
+    coords <- put_ll_in_order(jump_c, mc)
     
-    coords <- cands[[which.min(d)]]
-
     leafletProxy("map") %>%
       addCircleMarkers(
         lng = coords[1], lat = coords[2],
         layerId = "typed_point"
       )
 
-    typed_coords$pt <- 
-      st_point(coords) %>%
-      st_sfc(crs = 4326) %>%
-      st_transform(r_crs()) %>%
-      st_coordinates()
+    typed_coords$pt <- reproject_coords(coords, 4326, r_crs())
   })
   
   observeEvent(
@@ -174,14 +159,14 @@ server <- function(input, output, session) {
     }
   )
   
+  # TODO: If something is pasted before the map is clicked on init,
+  #   the graph doesn't fire. But behavior is normal after map click.
   clicked_coords <- reactive({
     if (is.null(typed_coords$pt)) {
-      st_point(
-        c(input$map_click[["lng"]], input$map_click[["lat"]])
-      ) %>% 
-        st_sfc(crs = 4326) %>% 
-        st_transform(r_crs()) %>% 
-        st_coordinates()
+      reproject_coords(
+        c(input$map_click[["lng"]], input$map_click[["lat"]]),
+        4326, r_crs()
+      )
     } else {
       typed_coords$pt
     }
