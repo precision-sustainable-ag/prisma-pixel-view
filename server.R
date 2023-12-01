@@ -149,7 +149,7 @@ server <- function(input, output, session) {
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
     
-    focus_tag <- if (!is.null(plot_ranges$x)) { " , subset of values" }
+    focus_tag <- if (!is.null(plot_ranges$x)) { ", subset of values" }
     cell_id <- unique(reflectance_at_point()$cell)
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     

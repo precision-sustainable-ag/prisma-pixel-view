@@ -51,7 +51,7 @@ ui <- fluidPage(
 
   fluidRow(
     column(6, leafletOutput("map", height = "60vh")),
-    column(6, plot_panel)
+    column(6, plot_panel, "Click-and-drag to brush a region, double-click to set/reset selection.")
   ),
   
   br(),
