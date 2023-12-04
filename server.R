@@ -52,7 +52,10 @@ server <- function(input, output, session) {
       "vector_show_hide", HTML("&nbsp;"),
       choices = basename(v$names),
       selected = basename(v$names),
-      multiple = T
+      multiple = T,
+      options = list(
+        plugins = list("remove_button")
+      )
     )
   })
   
@@ -99,20 +102,36 @@ server <- function(input, output, session) {
 
       purrr::map(
         v$names[to_show],
-        ~leafletProxy("map") %>% 
-          addGeoJSON(
-            geojson = readr::read_lines(.x) %>% paste(collapse = "\n"),
-            layerId = basename(.x),
-            fillOpacity = 0.1,
-            weight = 2,
-            opacity = 0.3
-          )
+        ~{
+          obj <- sf::read_sf(.x)
+          
+          obj_point <- obj %>% 
+            filter(sf::st_is(geometry, c("POINT", "MULTIPOINT")))
+          
+          obj_poly <- obj %>% 
+            filter(sf::st_is(geometry, c("POLYGON", "MULTIPOLYGON")))
+          
+          
+          leafletProxy("map") %>% 
+            addPolygons(
+              data = obj_poly, 
+              fillOpacity = 0.1, weight = 2, opacity = 0.3,
+              group = paste0(basename(.x), "_poly")#,
+              #color = "#00B3FF"
+              ) %>% 
+            addCircleMarkers(
+              data = obj_point, 
+              fillOpacity = 0.1, weight = 3, opacity = 0.3, radius = 5,
+              group = paste0(basename(.x), "_point")#,
+              #color = "#4C00FF"
+              )
+        }
       )
       
       purrr::map(
         v$names[!to_show],
         ~leafletProxy("map") %>%
-          removeGeoJSON(basename(.x))
+          clearGroup(paste0(basename(.x), c("_point", "_poly")))
       )
     }
   )
@@ -142,7 +161,8 @@ server <- function(input, output, session) {
     leafletProxy("map") %>%
       addCircleMarkers(
         lng = coords[1], lat = coords[2],
-        layerId = "typed_point"
+        layerId = "typed_point",
+        color = "black"
       )
 
     typed_coords$pt <- reproject_coords(coords, 4326, r_crs())
