@@ -3,78 +3,230 @@ library(terra)
 library(sf)
 library(dplyr)
 library(ggplot2)
+library(leafem)
 
 
 
-server <- function(input, output) {
-  path <- "rasters/PRS_L2D_STD_20221210_HCO_VNIR_SWIR_mosaic_updated_georegistration.tif"
+server <- function(input, output, session) {
+
+  observeEvent(input$browser,{
+    browser()
+  })
   
-  raster <- rast(path)
-  r_crs <- crs(raster, describe = T)$code
+  shinyFileChoose(
+    input, 'raster_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif')
+    )
   
-  #raster_stars <- stars::read_stars(path)
+  shinyFileChoose(
+    input, 'vector_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('shp', 'geojson')
+  )
+  
+  path <- reactive({
+    parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
+  })
+  
+  raster <- reactive({ rast(path()) })
+  r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
+  
+
+  vector_path <- reactive({
+    parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
+  })
+  
+  v <- reactiveValues(names = character(0))
+  observeEvent(
+    vector_path(), {
+      v$names <- 
+        c(v$names, vector_path()) %>% 
+        unique()
+    }
+  )
+  
+  
+  output$vector_selections <- renderUI({
+    selectizeInput(
+      "vector_show_hide", HTML("&nbsp;"),
+      choices = basename(v$names),
+      selected = basename(v$names),
+      multiple = T
+    )
+  })
   
   output$map <- renderLeaflet({
-    input$reset
+    req(path())
     
-    leaflet() %>% 
+    input$reset
+
+    bb <- 
+      as.polygons(raster(), extent = T) %>% 
+      st_as_sf() %>% 
+      st_transform(4326) %>% 
+      st_bbox()
+    
+    leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
-      ) %>% 
-      leafem::addGeotiff(
-        file = path, bands = 40, opacity = 0.6, 
-        colorOptions = leafem::colorOptions(
+      ) %>%
+      addGeotiff(
+        file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
+        colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
         resolution = 72
-      ) %>% 
+      ) %>%
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
+      ) %>% 
+      addHomeButton(
+        ext = bb, position = "topleft",
+        group = "↺ Reset"
       )
   })
   
-  clicked_coords <- reactive({
-    st_point(
-      c(input$map_click[["lng"]], input$map_click[["lat"]])
-    ) %>% 
-      st_sfc(crs = 4326) %>% 
-      st_transform(as.numeric(r_crs)) %>% 
-      st_coordinates()
+  
+  # what a silly hack to make this fire when the list becomes empty
+  observeEvent(
+    c(input$vector_show_hide, "___placeholder___"), {
+      req(length(v$names) > 0)
+      
+      to_show <- basename(v$names) %in% input$vector_show_hide
+
+      purrr::map(
+        v$names[to_show],
+        ~leafletProxy("map") %>% 
+          addGeoJSON(
+            geojson = readr::read_lines(.x) %>% paste(collapse = "\n"),
+            layerId = basename(.x),
+            fillOpacity = 0.1,
+            weight = 2,
+            opacity = 0.3
+          )
+      )
+      
+      purrr::map(
+        v$names[!to_show],
+        ~leafletProxy("map") %>%
+          removeGeoJSON(basename(.x))
+      )
+    }
+  )
+  
+  typed_coords <- reactiveValues(pt = NULL)
+  
+  observeEvent(
+    input$jump_text, {
+      
+    jump_c <- extract_coords_from_string(input$jump_text)
+
+    if (length(jump_c) == 0) {
+      leafletProxy("map") %>%
+        removeMarker("typed_point")
+    }
+    
+    req(length(jump_c) == 2)
+
+    if (any(abs(jump_c) > 180)) {
+      # reproject 
+      #   (move this logic into put_ll_in_order, add crs arg)
+    }
+
+    mc <- input$map_center[c("lng", "lat")] %>% unlist()
+    coords <- put_ll_in_order(jump_c, mc)
+    
+    leafletProxy("map") %>%
+      addCircleMarkers(
+        lng = coords[1], lat = coords[2],
+        layerId = "typed_point"
+      )
+
+    typed_coords$pt <- reproject_coords(coords, 4326, r_crs())
   })
   
-  output$plot <- renderPlot({
-    
+  observeEvent(
+    input$map_click, {
+      updateTextInput(
+        inputId = "jump_text",
+        value = ""
+      )
+      
+      typed_coords$pt <- NULL
+    }
+  )
+  
+  # TODO: If something is pasted before the map is clicked on init,
+  #   the graph doesn't fire. But behavior is normal after map click.
+  clicked_coords <- reactive({
+    if (is.null(typed_coords$pt)) {
+      reproject_coords(
+        c(input$map_click[["lng"]], input$map_click[["lat"]]),
+        4326, r_crs()
+      )
+    } else {
+      typed_coords$pt
+    }
+  })
+  
+  reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
     
-    loc <- clicked_coords()
-
     vals <- 
-      extract(raster, loc, cell = T) %>% 
+      extract(raster(), clicked_coords(), cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
       rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
       rename(band = name, reflectance = value) 
-      
+
     if (input$wv_labels == "Sequential") {
-      vals <- mutate(vals, 
+      vals <- mutate(
+        vals, 
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
-        )
+      )
     } else if (input$wv_labels == "Numeric") {
-      vals <- mutate(vals, 
+      vals <- mutate(
+        vals, 
         band = as.numeric(band),
         wv = band,
         src = 1
       )
     }
     
-    title <- unique(vals$cell)
+    vals
+  })
+  
+  
+  plot_ranges <- reactiveValues(x = NULL, y = NULL)
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  observeEvent(
+    input$plot_dblclick, {
+      brush <- input$plot_brush
+      # sets these to NULL when `brush` is NULL
+      plot_ranges$x <- c(brush$xmin, brush$xmax)
+      plot_ranges$y <- c(brush$ymin, brush$ymax)
+    }
+  )
+  
+  
+  output$plot <- renderPlot({
+    req(path())
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_labels)
     
-    ggplot(vals, aes(wv, reflectance)) +
+    focus_tag <- if (!is.null(plot_ranges$x)) { ", subset of values" }
+    cell_id <- unique(reflectance_at_point()$cell)
+    title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
+    
+    ggplot(reflectance_at_point(), aes(wv, reflectance)) +
       geom_line(aes(group = src)) +
       scale_y_continuous(
         #breaks = function(lmts) {seq(0, max(lmts) + 0.05, by = 0.05)}
@@ -84,17 +236,26 @@ server <- function(input, output) {
         breaks = seq(400, 2400, by = 200),
       ) +
       labs(
-        title = paste("Cell number:", title, collapse = ""),
-        subtitle = basename(path),
+        title = title,
+        subtitle = basename(path()),
         x = "wavelength (nm)",
         y = "reflectance"
       ) +
+      coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
       theme(
         title = element_text(size = 14),
         axis.text = element_text(size = 14),
         plot.subtitle = element_text(size = 11)
         )
+  })
+  
+  output$plot_helper_text <- renderUI({
+    req(path())
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_labels)
+    
+    div("Click-and-drag to brush a region, double-click to set/reset selection.")
   })
   
   output$selected_point <-  renderUI({
@@ -106,14 +267,14 @@ server <- function(input, output) {
       input$map_click[["lat"]]
       ) 
     
-    loc <- cellFromXY(raster, clicked_coords())
+    loc <- cellFromXY(raster(), clicked_coords())
     
     wellPanel(
       h4(
         "Copy cell into R, or use ", 
         code(glue::glue("raster[{loc}]"))
         ),
-      pre(glue::glue("st_read('{gj}') %>%\n  st_transform({r_crs})"))
+      pre(glue::glue("st_read('{gj}') %>%\n  st_transform({r_crs()})"))
     )
   })
   
