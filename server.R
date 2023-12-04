@@ -248,13 +248,8 @@ server <- function(input, output, session) {
     
     ggplot(reflectance_at_point(), aes(wv, reflectance)) +
       geom_line(aes(group = src)) +
-      scale_y_continuous(
-        #breaks = function(lmts) {seq(0, max(lmts) + 0.05, by = 0.05)}
-        labels = function(brk) {sprintf("%4.2f", brk)}
-      ) +
-      scale_x_continuous(
-        breaks = seq(400, 2400, by = 200),
-      ) +
+      scale_y_continuous(labels = y_labels) +
+      scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
         subtitle = basename(path()),
