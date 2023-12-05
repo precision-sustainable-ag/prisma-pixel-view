@@ -20,10 +20,17 @@ server <- function(input, output, session) {
     )
   
   shinyFileChoose(
+    input, 'raster_comp_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif')
+  )
+  
+  shinyFileChoose(
     input, 'vector_file', 
     roots = c(wd = '.'), 
     filetypes = c('shp', 'geojson')
   )
+  
   
   path <- reactive({
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
@@ -32,7 +39,27 @@ server <- function(input, output, session) {
   raster <- reactive({ rast(path()) })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
   
-
+  
+  path_comp <- reactive({
+    if (!is.list(input$raster_comp_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp_file)[["datapath"]]
+  })
+  
+  raster_comp <- reactive({ 
+    if (!length(path_comp())) { return(NULL) }
+    rast(path_comp()) 
+    })
+  
+  output$comp_show_hide <- renderUI({
+    req(input$raster_comp_file)
+    checkboxInput(
+      "comp_show_hide",
+      NULL,
+      value = T
+      )
+  })
+  
+  
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
   })
@@ -49,7 +76,7 @@ server <- function(input, output, session) {
   
   output$vector_selections <- renderUI({
     selectizeInput(
-      "vector_show_hide", HTML("&nbsp;"),
+      "vector_show_hide", NULL, #HTML("&nbsp;"),
       choices = basename(v$names),
       selected = basename(v$names),
       multiple = T,
@@ -222,6 +249,38 @@ server <- function(input, output, session) {
     vals
   })
   
+  comp_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_comp_labels)
+
+    if (!length(raster_comp()) || !input$comp_show_hide) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp(), clicked_coords(), cell = T) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) 
+    
+    if (input$wv_comp_labels == "Sequential") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band]
+      )
+    } else if (input$wv_comp_labels == "Numeric") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
+    
+    geom_line(data = vals %>% mutate(reflectance = reflectance + 0.05), color = "red")
+  })
+  
   
   plot_ranges <- reactiveValues(x = NULL, y = NULL)
   
@@ -247,6 +306,7 @@ server <- function(input, output, session) {
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     
     ggplot(reflectance_at_point(), aes(wv, reflectance)) +
+      comp_geom_line() +
       geom_line(aes(group = src)) +
       scale_y_continuous(labels = y_labels) +
       scale_x_continuous(breaks = x_breaks) +

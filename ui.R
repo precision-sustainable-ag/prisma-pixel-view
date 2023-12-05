@@ -5,25 +5,40 @@ library(shinyFiles)
 rast_picker <- 
   shinyFilesButton(
     'raster_file', 
-    label = 'Choose local raster', 
+    label = 'Raster image', 
     title = 'Select a raster',
     multiple = F
     ) %>% 
   div(style = "padding-bottom: 1em;")
 
+rast_comp_picker <- 
+  shinyFilesButton(
+    'raster_comp_file', 
+    label = 'Optional ref. image', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(uiOutput("comp_show_hide"), style = "padding-bottom: 1em;")
+
 vect_picker <- 
   shinyFilesButton(
     'vector_file', 
-    label = 'Choose local points or polygons', 
+    label = 'Points and/or polygons', 
     title = 'Select vector file(s)',
     multiple = T
-  ) %>% 
-  div(style = "padding-bottom: 1em;")
+  ) 
 
 
 wv_picker <- 
   radioButtons(
     "wv_labels", "How are the bands labelled?", 
+    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
+    choiceValues = c("Sequential", "Numeric")
+  )
+
+wv_comp_picker <- 
+  radioButtons(
+    "wv_comp_labels", "How are the bands labelled?", 
     choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
     choiceValues = c("Sequential", "Numeric")
   )
@@ -50,12 +65,12 @@ jump_box <-
 ui <- fluidPage(
   
   titlePanel("PRISMA Pixel View"),
-  #actionButton("browser", "browser"),
+  actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
-      column(4, rast_picker, jump_box),
-      column(4, vect_picker, uiOutput("vector_selections")), 
-      column(4, wv_picker)
+      column(4, rast_picker, wv_picker),
+      column(4, rast_comp_picker, wv_comp_picker),
+      column(4, vect_picker, uiOutput("vector_selections"), jump_box), 
     )
   ),
 
