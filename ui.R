@@ -18,7 +18,9 @@ rast_comp_picker <-
     title = 'Select a raster',
     multiple = F
   ) %>% 
-  div(uiOutput("comp_show_hide"), style = "padding-bottom: 1em;")
+  div(style = "padding-bottom: 1em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp_show_hide"))
 
 vect_picker <- 
   shinyFilesButton(

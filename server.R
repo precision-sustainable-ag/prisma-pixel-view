@@ -52,13 +52,24 @@ server <- function(input, output, session) {
   
   output$comp_show_hide <- renderUI({
     req(input$raster_comp_file)
-    checkboxInput(
+    actionButton(
       "comp_show_hide",
-      NULL,
-      value = T
-      )
+      "",
+      icon = icon("eye-slash")
+      ) %>% 
+      column(4, .)
   })
   
+  observeEvent(
+    input$comp_show_hide, 
+    updateActionButton(
+      inputId = "comp_show_hide",
+      icon = list(
+        icon("eye-slash"), 
+        icon("eye")
+      )[[(input$comp_show_hide %% 2) + 1]]
+    )
+  )
   
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
@@ -253,7 +264,7 @@ server <- function(input, output, session) {
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_comp_labels)
 
-    if (!length(raster_comp()) || !input$comp_show_hide) { return(NULL) }
+    if (!length(raster_comp()) || (input$comp_show_hide %% 2)) { return(NULL) }
     
     vals <- 
       extract(raster_comp(), clicked_coords(), cell = T) %>% 
@@ -278,7 +289,7 @@ server <- function(input, output, session) {
       )
     }
     
-    geom_line(data = vals %>% mutate(reflectance = reflectance + 0.05), color = "red")
+    geom_line(data = vals, color = "red")
   })
   
   
