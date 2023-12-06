@@ -67,7 +67,7 @@ jump_box <-
 ui <- fluidPage(
   
   titlePanel("PRISMA Pixel View"),
-  actionButton("browser", "browser"),
+  # actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
       column(4, rast_picker, wv_picker),
