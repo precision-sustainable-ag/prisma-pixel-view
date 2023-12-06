@@ -30,6 +30,26 @@ reproject_coords <- function(x, crs_from, crs_to) {
     st_coordinates()
 }
 
+x_breaks <- function(x) {
+  brk <- scales::breaks_extended(n = 7)(x)
+
+  if (isTRUE(diff(brk)[1] > 200)) {
+    brk <- seq(0, max(brk) + 200, by = 200)
+  }
+  
+  brk
+}
+
+y_labels <- function(brk) {
+  lbl <- scales::label_number()(brk)
+
+  if (isTRUE(nchar(na.omit(lbl)[1]) < 4)) {
+    lbl <- scales::label_number(0.01)(brk)
+  }
+  
+  lbl
+}
+
 put_ll_in_order <- function(x, ref_ll) {
   candidates <- list(x, rev(x))
   

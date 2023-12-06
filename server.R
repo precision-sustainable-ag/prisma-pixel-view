@@ -20,10 +20,17 @@ server <- function(input, output, session) {
     )
   
   shinyFileChoose(
+    input, 'raster_comp_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif')
+  )
+  
+  shinyFileChoose(
     input, 'vector_file', 
     roots = c(wd = '.'), 
     filetypes = c('shp', 'geojson')
   )
+  
   
   path <- reactive({
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
@@ -32,7 +39,38 @@ server <- function(input, output, session) {
   raster <- reactive({ rast(path()) })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
   
-
+  
+  path_comp <- reactive({
+    if (!is.list(input$raster_comp_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp_file)[["datapath"]]
+  })
+  
+  raster_comp <- reactive({ 
+    if (!length(path_comp())) { return(NULL) }
+    rast(path_comp()) 
+    })
+  
+  output$comp_show_hide <- renderUI({
+    req(input$raster_comp_file)
+    actionButton(
+      "comp_show_hide",
+      "",
+      icon = icon("eye-slash")
+      ) %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp_show_hide, 
+    updateActionButton(
+      inputId = "comp_show_hide",
+      icon = list(
+        icon("eye-slash"), 
+        icon("eye")
+      )[[(input$comp_show_hide %% 2) + 1]]
+    )
+  )
+  
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
   })
@@ -49,10 +87,13 @@ server <- function(input, output, session) {
   
   output$vector_selections <- renderUI({
     selectizeInput(
-      "vector_show_hide", HTML("&nbsp;"),
+      "vector_show_hide", NULL, #HTML("&nbsp;"),
       choices = basename(v$names),
       selected = basename(v$names),
-      multiple = T
+      multiple = T,
+      options = list(
+        plugins = list("remove_button")
+      )
     )
   })
   
@@ -99,20 +140,36 @@ server <- function(input, output, session) {
 
       purrr::map(
         v$names[to_show],
-        ~leafletProxy("map") %>% 
-          addGeoJSON(
-            geojson = readr::read_lines(.x) %>% paste(collapse = "\n"),
-            layerId = basename(.x),
-            fillOpacity = 0.1,
-            weight = 2,
-            opacity = 0.3
-          )
+        ~{
+          obj <- sf::read_sf(.x)
+          
+          obj_point <- obj %>% 
+            filter(sf::st_is(geometry, c("POINT", "MULTIPOINT")))
+          
+          obj_poly <- obj %>% 
+            filter(sf::st_is(geometry, c("POLYGON", "MULTIPOLYGON")))
+          
+          
+          leafletProxy("map") %>% 
+            addPolygons(
+              data = obj_poly, 
+              fillOpacity = 0.1, weight = 2, opacity = 0.3,
+              group = paste0(basename(.x), "_poly")#,
+              #color = "#00B3FF"
+              ) %>% 
+            addCircleMarkers(
+              data = obj_point, 
+              fillOpacity = 0.1, weight = 3, opacity = 0.3, radius = 5,
+              group = paste0(basename(.x), "_point")#,
+              #color = "#4C00FF"
+              )
+        }
       )
       
       purrr::map(
         v$names[!to_show],
         ~leafletProxy("map") %>%
-          removeGeoJSON(basename(.x))
+          clearGroup(paste0(basename(.x), c("_point", "_poly")))
       )
     }
   )
@@ -142,7 +199,8 @@ server <- function(input, output, session) {
     leafletProxy("map") %>%
       addCircleMarkers(
         lng = coords[1], lat = coords[2],
-        layerId = "typed_point"
+        layerId = "typed_point",
+        color = "black"
       )
 
     typed_coords$pt <- reproject_coords(coords, 4326, r_crs())
@@ -202,6 +260,38 @@ server <- function(input, output, session) {
     vals
   })
   
+  comp_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    req(input$wv_comp_labels)
+
+    if (!length(raster_comp()) || (input$comp_show_hide %% 2)) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp(), clicked_coords(), cell = T) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) 
+    
+    if (input$wv_comp_labels == "Sequential") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band]
+      )
+    } else if (input$wv_comp_labels == "Numeric") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
+    
+    geom_line(data = vals, color = "red")
+  })
+  
   
   plot_ranges <- reactiveValues(x = NULL, y = NULL)
   
@@ -227,14 +317,10 @@ server <- function(input, output, session) {
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     
     ggplot(reflectance_at_point(), aes(wv, reflectance)) +
+      comp_geom_line() +
       geom_line(aes(group = src)) +
-      scale_y_continuous(
-        #breaks = function(lmts) {seq(0, max(lmts) + 0.05, by = 0.05)}
-        labels = function(brk) {sprintf("%4.2f", brk)}
-      ) +
-      scale_x_continuous(
-        breaks = seq(400, 2400, by = 200),
-      ) +
+      scale_y_continuous(labels = y_labels) +
+      scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
         subtitle = basename(path()),
