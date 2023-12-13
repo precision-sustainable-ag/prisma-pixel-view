@@ -16,13 +16,13 @@ server <- function(input, output, session) {
   shinyFileChoose(
     input, 'raster_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
     )
   
   shinyFileChoose(
     input, 'raster_comp_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
   )
   
   shinyFileChoose(
@@ -38,7 +38,7 @@ server <- function(input, output, session) {
   
   raster <- reactive({ rast(path()) })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
-  
+#  r_bbox <- reactive({ project(ext(raster()), crs(raster()), "EPSG:4326")})
   
   path_comp <- reactive({
     if (!is.list(input$raster_comp_file)) { return(NULL) }
@@ -100,8 +100,6 @@ server <- function(input, output, session) {
   output$map <- renderLeaflet({
     req(path())
     
-    input$reset
-
     bb <- 
       as.polygons(raster(), extent = T) %>% 
       st_as_sf() %>% 
@@ -113,22 +111,24 @@ server <- function(input, output, session) {
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>%
-      addGeotiff(
-        file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
+      addGeoRaster(
+        stars::st_as_stars(raster())[,,,1], # TODO update bands with picker
         colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
-        resolution = 72
-      ) %>%
+        resolution = 72, opacity = 0.6
+      ) %>% 
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
-        options = providerTileOptions(opacity = 0.75, attribution = "")
+        options = providerTileOptions(opacity = 0.75, attribution = "", zIndex = 99)
       ) %>% 
       addHomeButton(
         ext = bb, position = "topleft",
         group = "↺ Reset"
-      )
+      ) %>% 
+      fitBounds(bb[[1]], bb[[2]], bb[[3]], bb[[4]])
   })
+
   
   
   # what a silly hack to make this fire when the list becomes empty
