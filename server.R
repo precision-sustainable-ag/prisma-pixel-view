@@ -141,7 +141,7 @@ server <- function(input, output, session) {
       ) %>% 
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
-        options = providerTileOptions(opacity = 0.75, attribution = "", zIndex = 99)
+        options = providerTileOptions(opacity = 0.75, attribution = "")
       ) %>% 
       addHomeButton(
         ext = bb, position = "topleft",
