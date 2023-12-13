@@ -2,6 +2,33 @@ library(shiny)
 library(leaflet)
 library(shinyFiles)
 
+manifest <- 
+  tags$head(
+    tags$link(rel="apple-touch-icon", href="apple-touch-icon.png"),
+    tags$link(rel="icon", type="image/png", sizes="32x32", href="favicon-32x32.png"),
+    tags$link(rel="icon", type="image/png", sizes="16x16", href="favicon-16x16.png"),
+    tags$link(rel="manifest", href="site.webmanifest")
+  )
+
+title_component <- 
+  span(
+    tags$img(
+      src = "PSAlogo-text.png", 
+      style = "height: 1.5em; vertical-align: middle;"
+    ) %>% 
+      tags$a(href = "https://www.precisionsustainableag.org"),
+    "PRISMA Pixel View",
+    tags$a(
+      icon("github"), 
+      href = "https://github.com/precision-sustainable-ag/prisma-pixel-view", 
+      class = "button", 
+      target="_blank", rel="noopener noreferrer", 
+      style = "float: right;")
+  ) %>% 
+  titlePanel(windowTitle = "PRISMA Pixel View")
+
+  
+
 rast_picker <- 
   shinyFilesButton(
     'raster_file', 
@@ -65,10 +92,15 @@ jump_box <-
     placeholder = "e.g. 39.03,-76.93 (any order)"
     )
 
+map_component <- 
+  leafletOutput("map", height = "60vh") %>% 
+  shinycssloaders::withSpinner(type = 7, size = 2)
+  
 
 ui <- fluidPage(
+  manifest,
   
-  titlePanel("PRISMA Pixel View"),
+  title_component,
   # actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
@@ -79,7 +111,7 @@ ui <- fluidPage(
   ),
 
   fluidRow(
-    column(6, leafletOutput("map", height = "60vh")),
+    column(6, map_component),
     column(6, plot_panel, uiOutput("plot_helper_text"))
   ),
   

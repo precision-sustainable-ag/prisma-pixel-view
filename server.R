@@ -36,7 +36,10 @@ server <- function(input, output, session) {
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
   })
   
-  raster <- reactive({ rast(path()) })
+  raster <- reactive({     
+    if (!length(path())) { return(NULL) }
+    rast(path()) 
+  })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
 
   observeEvent(
@@ -370,6 +373,7 @@ server <- function(input, output, session) {
   output$selected_point <-  renderUI({
     
     req(is.numeric(input$map_click[["lng"]]))
+    req(raster())
     
     gj <- make_geojson(
       input$map_click[["lng"]], 
