@@ -38,7 +38,16 @@ server <- function(input, output, session) {
   
   raster <- reactive({ rast(path()) })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
-#  r_bbox <- reactive({ project(ext(raster()), crs(raster()), "EPSG:4326")})
+
+  observeEvent(
+    input$raster_file, {
+      updateRadioButtons(
+        inputId = "wv_labels",
+        selected = character(0)
+      )
+    }
+  )
+  
   
   path_comp <- reactive({
     if (!is.list(input$raster_comp_file)) { return(NULL) }
@@ -59,6 +68,15 @@ server <- function(input, output, session) {
       ) %>% 
       column(4, .)
   })
+  
+  observeEvent(
+    input$raster_comp_file, {
+      updateRadioButtons(
+        inputId = "wv_comp_labels",
+        selected = character(0)
+      )
+    }
+  )
   
   observeEvent(
     input$comp_show_hide, 
@@ -233,7 +251,7 @@ server <- function(input, output, session) {
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
-    
+
     vals <- 
       extract(raster(), clicked_coords(), cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
@@ -262,9 +280,12 @@ server <- function(input, output, session) {
   
   comp_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_comp_labels)
 
-    if (!length(raster_comp()) || (input$comp_show_hide %% 2)) { return(NULL) }
+    if (
+      !length(raster_comp()) || 
+        (input$comp_show_hide %% 2) || 
+        !length(input$wv_comp_labels)
+      ) { return(NULL) }
     
     vals <- 
       extract(raster_comp(), clicked_coords(), cell = T) %>% 
@@ -311,6 +332,8 @@ server <- function(input, output, session) {
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
+
+  #  browser()
     
     focus_tag <- if (!is.null(plot_ranges$x)) { ", subset of values" }
     cell_id <- unique(reflectance_at_point()$cell)

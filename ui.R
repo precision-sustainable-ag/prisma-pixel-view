@@ -35,14 +35,16 @@ wv_picker <-
   radioButtons(
     "wv_labels", "How are the bands labelled?", 
     choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric")
+    choiceValues = c("Sequential", "Numeric"),
+    selected = character(0)
   )
 
 wv_comp_picker <- 
   radioButtons(
     "wv_comp_labels", "How are the bands labelled?", 
     choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric")
+    choiceValues = c("Sequential", "Numeric"),
+    selected = character(0)
   )
 
 
