@@ -78,6 +78,12 @@ wv_comp_picker <-
     selected = character(0)
   )
 
+band_legend_component <- 
+  fluidRow(
+    column(8), 
+    uiOutput("legend_show_hide")
+  )
+
 
 plot_panel <- 
   plotOutput(
@@ -108,7 +114,7 @@ ui <- fluidPage(
   # actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
-      column(4, rast_picker, wv_picker),
+      column(4, rast_picker, wv_picker, band_legend_component),
       column(4, rast_comp_picker, wv_comp_picker),
       column(4, vect_picker, uiOutput("vector_selections"), jump_box), 
     )

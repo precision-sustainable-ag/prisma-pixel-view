@@ -62,16 +62,6 @@ server <- function(input, output, session) {
     rast(path_comp()) 
     })
   
-  output$comp_show_hide <- renderUI({
-    req(input$raster_comp_file)
-    actionButton(
-      "comp_show_hide",
-      "",
-      icon = icon("eye-slash")
-      ) %>% 
-      column(4, .)
-  })
-  
   observeEvent(
     input$raster_comp_file, {
       updateRadioButtons(
@@ -81,14 +71,46 @@ server <- function(input, output, session) {
     }
   )
   
+  output$comp_show_hide <- renderUI({
+    req(input$raster_comp_file)
+    actionButton(
+      "comp_show_hide",
+      label = "",
+      icon = icon("chart-line")
+      ) %>% 
+      column(4, .)
+  })
+  
   observeEvent(
     input$comp_show_hide, 
     updateActionButton(
       inputId = "comp_show_hide",
       icon = list(
-        icon("eye-slash"), 
-        icon("eye")
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
       )[[(input$comp_show_hide %% 2) + 1]]
+    )
+  )
+  
+  
+  output$legend_show_hide <- renderUI({
+    req(input$raster_file)
+    actionButton(
+      "legend_show_hide",
+      label = "",
+      icon = icon("list")
+    ) %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$legend_show_hide, 
+    updateActionButton(
+      inputId = "legend_show_hide",
+      icon = list(
+        icon("list"), 
+        icon("list", style = "filter: invert(80%);")
+      )[[(input$legend_show_hide %% 2) + 1]]
     )
   )
   
@@ -149,6 +171,32 @@ server <- function(input, output, session) {
       ) %>% 
       fitBounds(bb[[1]], bb[[2]], bb[[3]], bb[[4]])
   })
+  
+  observeEvent(
+    input$legend_show_hide, {
+      req(raster())
+      #browser()
+      rv <- terra::minmax(raster()[[1]]) %>% as.numeric() # TODO update band
+    
+      if (input$legend_show_hide %% 2) {
+        leafletProxy("map") %>% 
+          addLegend(
+            bins = scales::pretty_breaks()(rv) %>% 
+              scales::rescale(rev(rv), rv) %>% 
+              rev(),
+            values = rv,
+            pal = leaflet::colorNumeric((viridis::magma(255)), rv),
+            labFormat = labelFormat(
+              transform = function(x) {scales::rescale(x, rev(rv), rv)}
+              ),
+            layerId = "legend"
+          ) 
+      } else {
+        leafletProxy("map") %>% 
+          removeControl("legend")
+      }
+    }
+  )
 
   
   
