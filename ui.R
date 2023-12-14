@@ -14,7 +14,7 @@ title_component <-
   span(
     tags$img(
       src = "PSAlogo-text.png", 
-      style = "height: 1.5em; vertical-align: middle;"
+      style = "height: 1.75em; vertical-align: middle; filter:invert(95%);"
     ) %>% 
       tags$a(
         href = "https://www.precisionsustainableag.org",
@@ -37,7 +37,8 @@ rast_picker <-
     'raster_file', 
     label = 'Raster image', 
     title = 'Select a raster',
-    multiple = F
+    multiple = F,
+    class = "btn btn-primary"
     ) %>% 
   div(style = "padding-bottom: 1em;")
 
@@ -46,7 +47,8 @@ rast_comp_picker <-
     'raster_comp_file', 
     label = 'Optional ref. image', 
     title = 'Select a raster',
-    multiple = F
+    multiple = F,
+    class = "btn btn-info"
   ) %>% 
   div(style = "padding-bottom: 1em") %>% 
   column(8, .) %>% 
@@ -57,7 +59,8 @@ vect_picker <-
     'vector_file', 
     label = 'Points and/or polygons', 
     title = 'Select vector file(s)',
-    multiple = T
+    multiple = T,
+    class = "btn btn-info"
   ) 
 
 
@@ -97,12 +100,12 @@ jump_box <-
 
 map_component <- 
   leafletOutput("map", height = "60vh") %>% 
-  shinycssloaders::withSpinner(type = 7, size = 2)
+  shinycssloaders::withSpinner(type = 7, size = 2, color = "#abb6c2")
   
 
 ui <- fluidPage(
   manifest,
-  
+  theme = bslib::bs_theme(bootswatch = "superhero"),
   title_component,
   # actionButton("browser", "browser"),
   wellPanel(
@@ -113,6 +116,8 @@ ui <- fluidPage(
     )
   ),
 
+  br(),
+  
   fluidRow(
     column(6, map_component),
     column(6, plot_panel, uiOutput("plot_helper_text"))
