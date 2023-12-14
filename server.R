@@ -201,21 +201,25 @@ server <- function(input, output, session) {
     input$jump_text, {
       
     jump_c <- extract_coords_from_string(input$jump_text)
+    coords <- NaN
 
     if (length(jump_c) == 0) {
       leafletProxy("map") %>%
         removeMarker("typed_point")
     }
     
-    req(length(jump_c) == 2)
-
-    if (any(abs(jump_c) > 180)) {
-      # reproject 
-      #   (move this logic into put_ll_in_order, add crs arg)
+    if (length(jump_c) == 1) {
+      coords <- 
+        terra::xyFromCell(raster(), jump_c) %>% 
+        reproject_coords(r_crs(), 4326)
     }
-
-    mc <- input$map_center[c("lng", "lat")] %>% unlist()
-    coords <- put_ll_in_order(jump_c, mc)
+    
+    if (length(jump_c) == 2) {
+      mc <- input$map_center[c("lng", "lat")] %>% unlist()
+      coords <- put_ll_in_order(jump_c, mc, r_crs())
+    } 
+    
+    req(all(is.finite(coords)))
     
     leafletProxy("map") %>%
       addCircleMarkers(

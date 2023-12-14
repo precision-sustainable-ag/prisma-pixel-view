@@ -91,7 +91,7 @@ plot_panel <-
 jump_box <- 
   textInput(
     "jump_text", 
-    "Paste coords to jump",
+    "Paste coords or cell # to jump",
     placeholder = "e.g. 39.03,-76.93 (any order)"
     )
 
