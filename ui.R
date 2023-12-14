@@ -20,6 +20,7 @@ title_component <-
         href = "https://www.precisionsustainableag.org",
         target="_blank", rel="noopener noreferrer"
       ),
+    HTML("&nbsp;"),
     "PRISMA Pixel View",
     tags$a(
       icon("github"), 
@@ -45,14 +46,14 @@ rast_picker <-
 rast_comp_picker <- 
   shinyFilesButton(
     'raster_comp_file', 
-    label = 'Optional ref. image', 
+    label = 'Reference image', 
     title = 'Select a raster',
     multiple = F,
     class = "btn btn-info"
   ) %>% 
   div(style = "padding-bottom: 1em") %>% 
-  column(8, .) %>% 
-  fluidRow(uiOutput("comp_show_hide"))
+  div(uiOutput("comp_show_hide"), class = "btn-group")
+
 
 vect_picker <- 
   shinyFilesButton(
