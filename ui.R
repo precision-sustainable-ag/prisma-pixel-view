@@ -16,7 +16,10 @@ title_component <-
       src = "PSAlogo-text.png", 
       style = "height: 1.5em; vertical-align: middle;"
     ) %>% 
-      tags$a(href = "https://www.precisionsustainableag.org"),
+      tags$a(
+        href = "https://www.precisionsustainableag.org",
+        target="_blank", rel="noopener noreferrer"
+      ),
     "PRISMA Pixel View",
     tags$a(
       icon("github"), 
