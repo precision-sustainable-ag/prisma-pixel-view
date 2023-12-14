@@ -26,7 +26,8 @@ title_component <-
       href = "https://github.com/precision-sustainable-ag/prisma-pixel-view", 
       class = "button", 
       target="_blank", rel="noopener noreferrer", 
-      style = "float: right;")
+      style = "float: right;"
+      )
   ) %>% 
   titlePanel(windowTitle = "PRISMA Pixel View")
 
