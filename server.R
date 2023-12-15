@@ -78,6 +78,7 @@ server <- function(input, output, session) {
       label = "",
       icon = icon("chart-line")
       ) %>% 
+      div(title = "Show/hide reference spectrum") %>% 
       column(4, .)
   })
   
@@ -100,6 +101,7 @@ server <- function(input, output, session) {
       label = "",
       icon = icon("list")
     ) %>% 
+      div(title = "Show/hide legend") %>% 
       column(4, .)
   })
   
