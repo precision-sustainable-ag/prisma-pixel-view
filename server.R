@@ -16,13 +16,13 @@ server <- function(input, output, session) {
   shinyFileChoose(
     input, 'raster_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
     )
   
   shinyFileChoose(
     input, 'raster_comp_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
   )
   
   shinyFileChoose(
@@ -36,8 +36,20 @@ server <- function(input, output, session) {
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
   })
   
-  raster <- reactive({ rast(path()) })
+  raster <- reactive({     
+    if (!length(path())) { return(NULL) }
+    rast(path()) 
+  })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
+
+  observeEvent(
+    input$raster_file, {
+      updateRadioButtons(
+        inputId = "wv_labels",
+        selected = character(0)
+      )
+    }
+  )
   
   
   path_comp <- reactive({
@@ -50,13 +62,23 @@ server <- function(input, output, session) {
     rast(path_comp()) 
     })
   
+  observeEvent(
+    input$raster_comp_file, {
+      updateRadioButtons(
+        inputId = "wv_comp_labels",
+        selected = character(0)
+      )
+    }
+  )
+  
   output$comp_show_hide <- renderUI({
     req(input$raster_comp_file)
     actionButton(
       "comp_show_hide",
-      "",
-      icon = icon("eye-slash")
+      label = "",
+      icon = icon("chart-line")
       ) %>% 
+      div(title = "Show/hide reference spectrum") %>% 
       column(4, .)
   })
   
@@ -65,9 +87,32 @@ server <- function(input, output, session) {
     updateActionButton(
       inputId = "comp_show_hide",
       icon = list(
-        icon("eye-slash"), 
-        icon("eye")
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
       )[[(input$comp_show_hide %% 2) + 1]]
+    )
+  )
+  
+  
+  output$legend_show_hide <- renderUI({
+    req(input$raster_file)
+    actionButton(
+      "legend_show_hide",
+      label = "",
+      icon = icon("list")
+    ) %>% 
+      div(title = "Show/hide legend") %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$legend_show_hide, 
+    updateActionButton(
+      inputId = "legend_show_hide",
+      icon = list(
+        icon("list"), 
+        icon("list", style = "filter: invert(80%);")
+      )[[(input$legend_show_hide %% 2) + 1]]
     )
   )
   
@@ -100,8 +145,6 @@ server <- function(input, output, session) {
   output$map <- renderLeaflet({
     req(path())
     
-    input$reset
-
     bb <- 
       as.polygons(raster(), extent = T) %>% 
       st_as_sf() %>% 
@@ -113,13 +156,13 @@ server <- function(input, output, session) {
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>%
-      addGeotiff(
-        file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
+      addGeoRaster(
+        stars::st_as_stars(raster())[,,,1], # TODO update bands with picker
         colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
-        resolution = 72
-      ) %>%
+        resolution = 72, opacity = 0.6
+      ) %>% 
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
@@ -127,8 +170,37 @@ server <- function(input, output, session) {
       addHomeButton(
         ext = bb, position = "topleft",
         group = "↺ Reset"
-      )
+      ) %>% 
+      fitBounds(bb[[1]], bb[[2]], bb[[3]], bb[[4]])
   })
+  
+  observeEvent(
+    input$legend_show_hide, {
+      req(raster())
+      #browser()
+      rv <- terra::minmax(raster()[[1]]) %>% as.numeric() # TODO update band
+    
+      if (input$legend_show_hide %% 2) {
+        leafletProxy("map") %>% 
+          addLegend(
+            bins = scales::pretty_breaks()(rv) %>% 
+              scales::rescale(rev(rv), rv) %>% 
+              rev(),
+            values = rv,
+            pal = leaflet::colorNumeric((viridis::magma(255)), rv),
+            labFormat = labelFormat(
+              transform = function(x) {scales::rescale(x, rev(rv), rv)}
+              ),
+            layerId = "legend",
+            opacity = 0.8
+          ) 
+      } else {
+        leafletProxy("map") %>% 
+          removeControl("legend")
+      }
+    }
+  )
+
   
   
   # what a silly hack to make this fire when the list becomes empty
@@ -180,21 +252,25 @@ server <- function(input, output, session) {
     input$jump_text, {
       
     jump_c <- extract_coords_from_string(input$jump_text)
+    coords <- NaN
 
     if (length(jump_c) == 0) {
       leafletProxy("map") %>%
         removeMarker("typed_point")
     }
     
-    req(length(jump_c) == 2)
-
-    if (any(abs(jump_c) > 180)) {
-      # reproject 
-      #   (move this logic into put_ll_in_order, add crs arg)
+    if (length(jump_c) == 1) {
+      coords <- 
+        terra::xyFromCell(raster(), jump_c) %>% 
+        reproject_coords(r_crs(), 4326)
     }
-
-    mc <- input$map_center[c("lng", "lat")] %>% unlist()
-    coords <- put_ll_in_order(jump_c, mc)
+    
+    if (length(jump_c) == 2) {
+      mc <- input$map_center[c("lng", "lat")] %>% unlist()
+      coords <- put_ll_in_order(jump_c, mc, r_crs())
+    } 
+    
+    req(all(is.finite(coords)))
     
     leafletProxy("map") %>%
       addCircleMarkers(
@@ -233,7 +309,7 @@ server <- function(input, output, session) {
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
-    
+
     vals <- 
       extract(raster(), clicked_coords(), cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
@@ -262,9 +338,12 @@ server <- function(input, output, session) {
   
   comp_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_comp_labels)
 
-    if (!length(raster_comp()) || (input$comp_show_hide %% 2)) { return(NULL) }
+    if (
+      !length(raster_comp()) || 
+        (input$comp_show_hide %% 2) || 
+        !length(input$wv_comp_labels)
+      ) { return(NULL) }
     
     vals <- 
       extract(raster_comp(), clicked_coords(), cell = T) %>% 
@@ -311,6 +390,8 @@ server <- function(input, output, session) {
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
     req(input$wv_labels)
+
+  #  browser()
     
     focus_tag <- if (!is.null(plot_ranges$x)) { ", subset of values" }
     cell_id <- unique(reflectance_at_point()$cell)
@@ -347,6 +428,7 @@ server <- function(input, output, session) {
   output$selected_point <-  renderUI({
     
     req(is.numeric(input$map_click[["lng"]]))
+    req(raster())
     
     gj <- make_geojson(
       input$map_click[["lng"]], 
