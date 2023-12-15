@@ -191,7 +191,8 @@ server <- function(input, output, session) {
             labFormat = labelFormat(
               transform = function(x) {scales::rescale(x, rev(rv), rv)}
               ),
-            layerId = "legend"
+            layerId = "legend",
+            opacity = 0.8
           ) 
       } else {
         leafletProxy("map") %>% 
