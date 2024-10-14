@@ -42,16 +42,49 @@ rast_picker <-
     ) %>% 
   div(style = "padding-bottom: 1em;")
 
-rast_comp_picker <- 
+rast_comp0_picker <- 
   shinyFilesButton(
-    'raster_comp_file', 
+    'raster_comp0_file', 
     label = 'Optional ref. image', 
     title = 'Select a raster',
     multiple = F
   ) %>% 
   div(style = "padding-bottom: 1em") %>% 
   column(8, .) %>% 
-  fluidRow(uiOutput("comp_show_hide"))
+  fluidRow(uiOutput("comp0_show_hide"))
+
+rast_comp1_picker <- 
+  shinyFilesButton(
+    'raster_comp1_file', 
+    label = 'Optional ref. image', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 1em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp1_show_hide"))
+
+rast_comp2_picker <- 
+  shinyFilesButton(
+    'raster_comp2_file', 
+    label = 'Optional ref. image', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 1em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp2_show_hide"))
+
+rast_comp3_picker <- 
+  shinyFilesButton(
+    'raster_comp3_file', 
+    label = 'Optional ref. image', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 1em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp3_show_hide"))
 
 vect_picker <- 
   shinyFilesButton(
@@ -70,9 +103,33 @@ wv_picker <-
     selected = character(0)
   )
 
-wv_comp_picker <- 
+wv_comp0_picker <- 
   radioButtons(
-    "wv_comp_labels", "How are the bands labelled?", 
+    "wv_comp0_labels", "How are the bands labelled?", 
+    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
+    choiceValues = c("Sequential", "Numeric"),
+    selected = character(0)
+  )
+
+wv_comp1_picker <- 
+  radioButtons(
+    "wv_comp1_labels", "How are the bands labelled?", 
+    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
+    choiceValues = c("Sequential", "Numeric"),
+    selected = character(0)
+  )
+
+wv_comp2_picker <- 
+  radioButtons(
+    "wv_comp2_labels", "How are the bands labelled?", 
+    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
+    choiceValues = c("Sequential", "Numeric"),
+    selected = character(0)
+  )
+
+wv_comp3_picker <- 
+  radioButtons(
+    "wv_comp3_labels", "How are the bands labelled?", 
     choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
     choiceValues = c("Sequential", "Numeric"),
     selected = character(0)
@@ -115,8 +172,14 @@ ui <- fluidPage(
   wellPanel(
     fluidRow(
       column(4, rast_picker, wv_picker, band_legend_component),
-      column(4, rast_comp_picker, wv_comp_picker),
+      column(4, rast_comp0_picker, wv_comp0_picker),
       column(4, vect_picker, uiOutput("vector_selections"), jump_box), 
+    ),
+    tags$hr(),
+    fluidRow(
+      column(4, rast_comp1_picker, wv_comp1_picker),
+      column(4, rast_comp2_picker, wv_comp2_picker),
+      column(4, rast_comp3_picker, wv_comp3_picker),
     )
   ),
 

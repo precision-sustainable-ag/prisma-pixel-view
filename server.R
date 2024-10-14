@@ -20,7 +20,25 @@ server <- function(input, output, session) {
     )
   
   shinyFileChoose(
-    input, 'raster_comp_file', 
+    input, 'raster_comp0_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp1_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp2_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp3_file', 
     roots = c(wd = '.'), 
     filetypes = c('tif', '', 'envi')
   )
@@ -52,29 +70,92 @@ server <- function(input, output, session) {
   )
   
   
-  path_comp <- reactive({
-    if (!is.list(input$raster_comp_file)) { return(NULL) }
-    parseFilePaths(c(wd = "."), input$raster_comp_file)[["datapath"]]
+  path_comp0 <- reactive({
+    if (!is.list(input$raster_comp0_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp0_file)[["datapath"]]
   })
   
-  raster_comp <- reactive({ 
-    if (!length(path_comp())) { return(NULL) }
-    rast(path_comp()) 
+  raster_comp0 <- reactive({ 
+    if (!length(path_comp0())) { return(NULL) }
+    rast(path_comp0()) 
     })
   
   observeEvent(
-    input$raster_comp_file, {
+    input$raster_comp0_file, {
       updateRadioButtons(
-        inputId = "wv_comp_labels",
+        inputId = "wv_comp0_labels",
         selected = character(0)
       )
     }
   )
   
-  output$comp_show_hide <- renderUI({
-    req(input$raster_comp_file)
+  
+  path_comp1 <- reactive({
+    if (!is.list(input$raster_comp1_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp1_file)[["datapath"]]
+  })
+  
+  raster_comp1 <- reactive({ 
+    if (!length(path_comp1())) { return(NULL) }
+    rast(path_comp1()) 
+  })
+  
+  observeEvent(
+    input$raster_comp1_file, {
+      updateRadioButtons(
+        inputId = "wv_comp1_labels",
+        selected = character(0)
+      )
+    }
+  )
+  
+  
+  path_comp2 <- reactive({
+    if (!is.list(input$raster_comp2_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp2_file)[["datapath"]]
+  })
+  
+  raster_comp2 <- reactive({ 
+    if (!length(path_comp2())) { return(NULL) }
+    rast(path_comp2()) 
+  })
+  
+  observeEvent(
+    input$raster_comp2_file, {
+      updateRadioButtons(
+        inputId = "wv_comp2_labels",
+        selected = character(0)
+      )
+    }
+  )
+  
+  
+  path_comp3 <- reactive({
+    if (!is.list(input$raster_comp3_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp3_file)[["datapath"]]
+  })
+  
+  raster_comp3 <- reactive({ 
+    if (!length(path_comp3())) { return(NULL) }
+    rast(path_comp3()) 
+  })
+  
+  observeEvent(
+    input$raster_comp3_file, {
+      updateRadioButtons(
+        inputId = "wv_comp3_labels",
+        selected = character(0)
+      )
+    }
+  )
+  
+  
+  
+  
+  output$comp0_show_hide <- renderUI({
+    req(input$raster_comp0_file)
     actionButton(
-      "comp_show_hide",
+      "comp0_show_hide",
       label = "",
       icon = icon("chart-line")
       ) %>% 
@@ -83,16 +164,84 @@ server <- function(input, output, session) {
   })
   
   observeEvent(
-    input$comp_show_hide, 
+    input$comp0_show_hide, 
     updateActionButton(
-      inputId = "comp_show_hide",
+      inputId = "comp0_show_hide",
       icon = list(
         icon("chart-line", style = "filter: invert(80%);"), 
         icon("chart-line")
-      )[[(input$comp_show_hide %% 2) + 1]]
+      )[[(input$comp0_show_hide %% 2) + 1]]
     )
   )
   
+  
+  output$comp1_show_hide <- renderUI({
+    req(input$raster_comp1_file)
+    actionButton(
+      "comp1_show_hide",
+      label = "",
+      icon = icon("chart-line")
+    ) %>% 
+      div(title = "Show/hide reference spectrum") %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp1_show_hide, 
+    updateActionButton(
+      inputId = "comp1_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp1_show_hide %% 2) + 1]]
+    )
+  )
+  
+  
+  output$comp2_show_hide <- renderUI({
+    req(input$raster_comp2_file)
+    actionButton(
+      "comp2_show_hide",
+      label = "",
+      icon = icon("chart-line")
+    ) %>% 
+      div(title = "Show/hide reference spectrum") %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp2_show_hide, 
+    updateActionButton(
+      inputId = "comp2_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp2_show_hide %% 2) + 1]]
+    )
+  )
+  
+  
+  output$comp3_show_hide <- renderUI({
+    req(input$raster_comp3_file)
+    actionButton(
+      "comp3_show_hide",
+      label = "",
+      icon = icon("chart-line")
+    ) %>% 
+      div(title = "Show/hide reference spectrum") %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp3_show_hide, 
+    updateActionButton(
+      inputId = "comp3_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp3_show_hide %% 2) + 1]]
+    )
+  )
   
   output$legend_show_hide <- renderUI({
     req(input$raster_file)
@@ -336,30 +485,138 @@ server <- function(input, output, session) {
     vals
   })
   
-  comp_geom_line <- reactive({
+  comp0_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
 
     if (
-      !length(raster_comp()) || 
-        (input$comp_show_hide %% 2) || 
-        !length(input$wv_comp_labels)
+      !length(raster_comp0()) || 
+        (input$comp0_show_hide %% 2) || 
+        !length(input$wv_comp0_labels)
       ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp(), clicked_coords(), cell = T) %>% 
+      extract(raster_comp0(), clicked_coords(), cell = T) %>% 
       dplyr::select(cell, matches("[.0-9]+$")) %>%
       rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
       rename(band = name, reflectance = value) 
     
-    if (input$wv_comp_labels == "Sequential") {
+    if (input$wv_comp0_labels == "Sequential") {
       vals <- mutate(
         vals, 
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_comp_labels == "Numeric") {
+    } else if (input$wv_comp0_labels == "Numeric") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
+    
+    geom_line(data = vals, color = "red")
+  })
+  
+  
+  comp1_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp1()) || 
+      (input$comp1_show_hide %% 2) || 
+      !length(input$wv_comp1_labels)
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp1(), clicked_coords(), cell = T) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) 
+    
+    if (input$wv_comp1_labels == "Sequential") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band]
+      )
+    } else if (input$wv_comp1_labels == "Numeric") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
+    
+    geom_line(data = vals, color = "red")
+  })
+  
+  
+  comp2_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp2()) || 
+      (input$comp2_show_hide %% 2) || 
+      !length(input$wv_comp2_labels)
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp2(), clicked_coords(), cell = T) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) 
+    
+    if (input$wv_comp2_labels == "Sequential") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band]
+      )
+    } else if (input$wv_comp2_labels == "Numeric") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = band,
+        src = 1
+      )
+    }
+    
+    geom_line(data = vals, color = "red")
+  })
+  
+  
+  comp3_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp3()) || 
+      (input$comp3_show_hide %% 2) || 
+      !length(input$wv_comp3_labels)
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp3(), clicked_coords(), cell = T) %>% 
+      dplyr::select(cell, matches("[.0-9]+$")) %>%
+      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) 
+    
+    if (input$wv_comp3_labels == "Sequential") {
+      vals <- mutate(
+        vals, 
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band]
+      )
+    } else if (input$wv_comp3_labels == "Numeric") {
       vals <- mutate(
         vals, 
         band = as.numeric(band),
@@ -398,7 +655,10 @@ server <- function(input, output, session) {
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     
     ggplot(reflectance_at_point(), aes(wv, reflectance)) +
-      comp_geom_line() +
+      comp0_geom_line() +
+      comp1_geom_line() +
+      comp2_geom_line() +
+      comp3_geom_line() +
       geom_line(aes(group = src)) +
       scale_y_continuous(labels = y_labels) +
       scale_x_continuous(breaks = x_breaks) +
