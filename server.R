@@ -13,6 +13,9 @@ server <- function(input, output, session) {
     browser()
   })
   
+  
+  
+  ## File choosers ----
   shinyFileChoose(
     input, 'raster_file', 
     roots = c(wd = '.'), 
@@ -50,6 +53,8 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # ref Path, raster, name ----
   path <- reactive({
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
   })
@@ -66,6 +71,8 @@ server <- function(input, output, session) {
     })
 
   
+  
+  # 0 Path, raster, name ----
   path_comp0 <- reactive({
     if (!is.list(input$raster_comp0_file)) { return(NULL) }
     parseFilePaths(c(wd = "."), input$raster_comp0_file)[["datapath"]]
@@ -82,6 +89,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 1 Path, raster, name ----
   path_comp1 <- reactive({
     if (!is.list(input$raster_comp1_file)) { return(NULL) }
     parseFilePaths(c(wd = "."), input$raster_comp1_file)[["datapath"]]
@@ -98,6 +107,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 2 Path, raster, name ----
   path_comp2 <- reactive({
     if (!is.list(input$raster_comp2_file)) { return(NULL) }
     parseFilePaths(c(wd = "."), input$raster_comp2_file)[["datapath"]]
@@ -114,6 +125,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 3 Path, raster, name ----
   path_comp3 <- reactive({
     if (!is.list(input$raster_comp3_file)) { return(NULL) }
     parseFilePaths(c(wd = "."), input$raster_comp3_file)[["datapath"]]
@@ -131,7 +144,7 @@ server <- function(input, output, session) {
   
   
   
-  
+  # 0 Show/hide ----
   output$comp0_show_hide <- renderUI({
     req(input$raster_comp0_file)
     actionButton(
@@ -155,6 +168,8 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # 1 Show/hide ----
   output$comp1_show_hide <- renderUI({
     req(input$raster_comp1_file)
     actionButton(
@@ -178,6 +193,8 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # 2 Show/hide ----
   output$comp2_show_hide <- renderUI({
     req(input$raster_comp2_file)
     actionButton(
@@ -201,6 +218,8 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # 3 Show/hide ----
   output$comp3_show_hide <- renderUI({
     req(input$raster_comp3_file)
     actionButton(
@@ -245,6 +264,9 @@ server <- function(input, output, session) {
     )
   )
   
+  
+  
+  # Vectors ----
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
   })
@@ -271,6 +293,9 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  
+  # Map ----
   output$map <- renderLeaflet({
     req(path())
     
@@ -305,6 +330,9 @@ server <- function(input, output, session) {
       fitBounds(bb[[1]], bb[[2]], bb[[3]], bb[[4]])
   })
   
+  
+  
+  # Legend ----
   observeEvent(
     input$legend_show_hide, {
       req(raster())
@@ -334,6 +362,7 @@ server <- function(input, output, session) {
 
   
   
+  # Vectors show/hide ----
   # what a silly hack to make this fire when the list becomes empty
   observeEvent(
     c(input$vector_show_hide, "___placeholder___"), {
@@ -377,6 +406,9 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
+  # Jump coords ----
   typed_coords <- reactiveValues(pt = NULL)
   
   observeEvent(
@@ -424,6 +456,9 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
+  # Click coords ----
   # TODO: If something is pasted before the map is clicked on init,
   #   the graph doesn't fire. But behavior is normal after map click.
   clicked_coords <- reactive({
@@ -437,6 +472,9 @@ server <- function(input, output, session) {
     }
   })
   
+  
+  
+  # ref Reflectance ----
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
 
@@ -459,6 +497,10 @@ server <- function(input, output, session) {
     vals
   })
   
+  
+  
+  
+  # 0 Reflectance ----
   comp0_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
 
@@ -488,6 +530,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 1 Reflectance ----
   comp1_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     
@@ -516,6 +560,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 2 Reflectance ----
   comp2_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     
@@ -544,6 +590,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # 3 Reflectance ----
   comp3_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
     
@@ -572,6 +620,8 @@ server <- function(input, output, session) {
   })
   
   
+  
+  # Plot zoom ----
   plot_ranges <- reactiveValues(x = NULL, y = NULL)
   
   # When a double-click happens, check if there's a brush on the plot.
@@ -586,6 +636,8 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # Plot ----
   output$plot <- renderPlot({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
@@ -626,6 +678,9 @@ server <- function(input, output, session) {
     div("Click-and-drag to brush a region, double-click to set/reset selection.")
   })
   
+  
+  
+  # Selection display ----
   output$selected_point <-  renderUI({
     
     req(is.numeric(input$map_click[["lng"]]))
