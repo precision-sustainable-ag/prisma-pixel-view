@@ -72,6 +72,20 @@ put_ll_in_order <- function(x, ref_ll, poss_crs) {
   candidates[[which.min(d)]]
 }
 
+name_label <- function(x, col) {
+  x = x %>% 
+    stringr::str_remove("\\.[a-zA-Z]+$") %>% 
+    stringr::str_sub(-20, -1) %>% 
+    paste0("~", ., collapse = "")
+  
+  span(
+    span("●", style = glue::glue("color: {col};")),
+    tags$code(x, style = "color: #000000;")
+  )
+}
+
+#cols = viridisLite::inferno(5, end = 0.8)
+cols = c("#000000", scales::hue_pal(h.start = 30)(4)) 
 
 wavelengths <- 
   c(402.4401855, 411.3163757, 419.3724976, 426.9674377, 434.3084106, 441.658905, 449.0336304, 456.3773499,

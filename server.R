@@ -60,6 +60,10 @@ server <- function(input, output, session) {
   })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
 
+  output$raster_name = renderUI({
+    req(path())
+    name_label(basename(path()), cols[1])
+    })
 
   
   path_comp0 <- reactive({
@@ -72,7 +76,10 @@ server <- function(input, output, session) {
     rast(path_comp0()) 
     })
   
-
+  output$comp0_name = renderUI({
+    req(path_comp0())
+    name_label(basename(path_comp0()), cols[2])
+  })
   
   
   path_comp1 <- reactive({
@@ -85,7 +92,10 @@ server <- function(input, output, session) {
     rast(path_comp1()) 
   })
   
-
+  output$comp1_name = renderUI({
+    req(path_comp1())
+    name_label(basename(path_comp1()), cols[3])
+  })
   
   
   path_comp2 <- reactive({
@@ -98,7 +108,10 @@ server <- function(input, output, session) {
     rast(path_comp2()) 
   })
   
-
+  output$comp2_name = renderUI({
+    req(path_comp2())
+    name_label(basename(path_comp2()), cols[4])
+  })
   
   
   path_comp3 <- reactive({
@@ -111,7 +124,10 @@ server <- function(input, output, session) {
     rast(path_comp3()) 
   })
   
-
+  output$comp3_name = renderUI({
+    req(path_comp3())
+    name_label(basename(path_comp3()), cols[5])
+  })
   
   
   
@@ -264,13 +280,15 @@ server <- function(input, output, session) {
       st_transform(4326) %>% 
       st_bbox()
     
+    band = if(length(names(raster())) >= 40) { 40 } else { 1 }
+    
     leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>%
       addGeoRaster(
-        stars::st_as_stars(raster())[,,,1], # TODO update bands with picker
+        stars::st_as_stars(raster())[,,,band], # TODO update bands with picker
         colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
@@ -466,7 +484,7 @@ server <- function(input, output, session) {
       )
     
     
-    geom_line(data = vals, color = "red")
+    geom_line(data = vals, color = cols[2])
   })
   
   
@@ -494,7 +512,7 @@ server <- function(input, output, session) {
         src = wv_src[band]
       )
     
-    geom_line(data = vals, color = "red")
+    geom_line(data = vals, color = cols[3])
   })
   
   
@@ -522,7 +540,7 @@ server <- function(input, output, session) {
         src = wv_src[band]
       )
     
-    geom_line(data = vals, color = "red")
+    geom_line(data = vals, color = cols[4])
   })
   
   
@@ -550,7 +568,7 @@ server <- function(input, output, session) {
         src = wv_src[band]
       )
     
-    geom_line(data = vals, color = "red")
+    geom_line(data = vals, color = cols[5])
   })
   
   
@@ -583,7 +601,7 @@ server <- function(input, output, session) {
       comp1_geom_line() +
       comp2_geom_line() +
       comp3_geom_line() +
-      geom_line(aes(group = src)) +
+      geom_line(aes(group = src), color = cols[1]) +
       scale_y_continuous(labels = y_labels) +
       scale_x_continuous(breaks = x_breaks) +
       labs(
