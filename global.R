@@ -78,15 +78,13 @@ put_ll_in_order <- function(x, ref_ll, poss_crs) {
 }
 
 
-name_label <- function(x, col) {
-  x = x %>% 
-    stringr::str_remove("\\.[a-zA-Z]+$") %>% 
-    stringr::str_sub(-20, -1) %>% 
-    paste0("~", ., collapse = "")
+name_label <- function(x, col, window_w) {
+  x = stringr::str_remove(x, "\\.[a-zA-Z]+$")
   
   span(
     span("█", style = glue::glue("color: {col};")),
-    tags$code(x, style = "color: #000000;")
+    tags$code(x, style = "color: #000000;"),
+    style = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 95%; display: inline-block;"
   )
 }
 
