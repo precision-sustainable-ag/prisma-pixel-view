@@ -95,45 +95,6 @@ vect_picker <-
   ) 
 
 
-wv_picker <- 
-  radioButtons(
-    "wv_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
-
-wv_comp0_picker <- 
-  radioButtons(
-    "wv_comp0_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
-
-wv_comp1_picker <- 
-  radioButtons(
-    "wv_comp1_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
-
-wv_comp2_picker <- 
-  radioButtons(
-    "wv_comp2_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
-
-wv_comp3_picker <- 
-  radioButtons(
-    "wv_comp3_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
 
 band_legend_component <- 
   fluidRow(
@@ -171,15 +132,15 @@ ui <- fluidPage(
   # actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
-      column(4, rast_picker, wv_picker, band_legend_component),
-      column(4, rast_comp0_picker, wv_comp0_picker),
+      column(4, rast_picker, band_legend_component),
+      column(4, rast_comp0_picker),
       column(4, vect_picker, uiOutput("vector_selections"), jump_box), 
     ),
     tags$hr(),
     fluidRow(
-      column(4, rast_comp1_picker, wv_comp1_picker),
-      column(4, rast_comp2_picker, wv_comp2_picker),
-      column(4, rast_comp3_picker, wv_comp3_picker),
+      column(4, rast_comp1_picker), #TODO display name and color for plot next to file button
+      column(4, rast_comp2_picker),
+      column(4, rast_comp3_picker),
     )
   ),
 

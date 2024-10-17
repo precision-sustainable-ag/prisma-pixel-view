@@ -60,15 +60,7 @@ server <- function(input, output, session) {
   })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
 
-  observeEvent(
-    input$raster_file, {
-      updateRadioButtons(
-        inputId = "wv_labels",
-        selected = character(0)
-      )
-    }
-  )
-  
+
   
   path_comp0 <- reactive({
     if (!is.list(input$raster_comp0_file)) { return(NULL) }
@@ -80,14 +72,7 @@ server <- function(input, output, session) {
     rast(path_comp0()) 
     })
   
-  observeEvent(
-    input$raster_comp0_file, {
-      updateRadioButtons(
-        inputId = "wv_comp0_labels",
-        selected = character(0)
-      )
-    }
-  )
+
   
   
   path_comp1 <- reactive({
@@ -100,14 +85,7 @@ server <- function(input, output, session) {
     rast(path_comp1()) 
   })
   
-  observeEvent(
-    input$raster_comp1_file, {
-      updateRadioButtons(
-        inputId = "wv_comp1_labels",
-        selected = character(0)
-      )
-    }
-  )
+
   
   
   path_comp2 <- reactive({
@@ -120,14 +98,7 @@ server <- function(input, output, session) {
     rast(path_comp2()) 
   })
   
-  observeEvent(
-    input$raster_comp2_file, {
-      updateRadioButtons(
-        inputId = "wv_comp2_labels",
-        selected = character(0)
-      )
-    }
-  )
+
   
   
   path_comp3 <- reactive({
@@ -140,14 +111,7 @@ server <- function(input, output, session) {
     rast(path_comp3()) 
   })
   
-  observeEvent(
-    input$raster_comp3_file, {
-      updateRadioButtons(
-        inputId = "wv_comp3_labels",
-        selected = character(0)
-      )
-    }
-  )
+
   
   
   
@@ -457,30 +421,22 @@ server <- function(input, output, session) {
   
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
 
     vals <- 
-      extract(raster(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      extract(raster(), clicked_coords(), cells = T)
+    
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
-
-    if (input$wv_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
     vals
   })
@@ -490,32 +446,25 @@ server <- function(input, output, session) {
 
     if (
       !length(raster_comp0()) || 
-        (input$comp0_show_hide %% 2) || 
-        !length(input$wv_comp0_labels)
+        (input$comp0_show_hide %% 2)
       ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp0(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
-      tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
+      extract(raster_comp0(), clicked_coords(), cells = T)
     
-    if (input$wv_comp0_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_comp0_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
+    
     
     geom_line(data = vals, color = "red")
   })
@@ -526,32 +475,24 @@ server <- function(input, output, session) {
     
     if (
       !length(raster_comp1()) || 
-      (input$comp1_show_hide %% 2) || 
-      !length(input$wv_comp1_labels)
+      (input$comp1_show_hide %% 2)
     ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp1(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
-      tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
+      extract(raster_comp1(), clicked_coords(), cells = T)
     
-    if (input$wv_comp1_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_comp1_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
     geom_line(data = vals, color = "red")
   })
@@ -562,32 +503,24 @@ server <- function(input, output, session) {
     
     if (
       !length(raster_comp2()) || 
-      (input$comp2_show_hide %% 2) || 
-      !length(input$wv_comp2_labels)
+      (input$comp2_show_hide %% 2)
     ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp2(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
-      tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
+      extract(raster_comp2(), clicked_coords(), cells = T)
     
-    if (input$wv_comp2_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_comp2_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
     geom_line(data = vals, color = "red")
   })
@@ -598,32 +531,24 @@ server <- function(input, output, session) {
     
     if (
       !length(raster_comp3()) || 
-      (input$comp3_show_hide %% 2) || 
-      !length(input$wv_comp3_labels)
+      (input$comp3_show_hide %% 2) 
     ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp3(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
-      tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
+      extract(raster_comp3(), clicked_coords(), cells = T)
     
-    if (input$wv_comp3_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band]
       )
-    } else if (input$wv_comp3_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
     geom_line(data = vals, color = "red")
   })
@@ -646,7 +571,6 @@ server <- function(input, output, session) {
   output$plot <- renderPlot({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
 
   #  browser()
     
@@ -680,8 +604,7 @@ server <- function(input, output, session) {
   output$plot_helper_text <- renderUI({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
-    
+
     div("Click-and-drag to brush a region, double-click to set/reset selection.")
   })
   
