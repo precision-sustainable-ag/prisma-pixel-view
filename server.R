@@ -147,12 +147,19 @@ server <- function(input, output, session) {
   # 0 Show/hide ----
   output$comp0_show_hide <- renderUI({
     req(input$raster_comp0_file)
-    actionButton(
-      "comp0_show_hide",
-      label = "",
-      icon = icon("chart-line")
-      ) %>% 
-      div(title = "Show/hide reference spectrum") %>% 
+    div(
+      actionButton(
+        "comp0_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp0_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
+    ) %>% 
       column(4, .)
   })
   
@@ -167,17 +174,34 @@ server <- function(input, output, session) {
     )
   )
   
+  observeEvent(
+    input$comp0_bn, 
+    updateActionButton(
+      inputId = "comp0_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp0_bn %% 2) + 1]]
+    )
+  )
   
   
   # 1 Show/hide ----
   output$comp1_show_hide <- renderUI({
     req(input$raster_comp1_file)
-    actionButton(
-      "comp1_show_hide",
-      label = "",
-      icon = icon("chart-line")
+    div(
+      actionButton(
+        "comp1_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp1_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
     ) %>% 
-      div(title = "Show/hide reference spectrum") %>% 
       column(4, .)
   })
   
@@ -192,17 +216,35 @@ server <- function(input, output, session) {
     )
   )
   
+  observeEvent(
+    input$comp1_bn, 
+    updateActionButton(
+      inputId = "comp1_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp1_bn %% 2) + 1]]
+    )
+  )
+  
   
   
   # 2 Show/hide ----
   output$comp2_show_hide <- renderUI({
     req(input$raster_comp2_file)
-    actionButton(
-      "comp2_show_hide",
-      label = "",
-      icon = icon("chart-line")
+    div(
+      actionButton(
+        "comp2_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp2_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
     ) %>% 
-      div(title = "Show/hide reference spectrum") %>% 
       column(4, .)
   })
   
@@ -217,17 +259,34 @@ server <- function(input, output, session) {
     )
   )
   
+  observeEvent(
+    input$comp2_bn, 
+    updateActionButton(
+      inputId = "comp2_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp2_bn %% 2) + 1]]
+    )
+  )
   
   
   # 3 Show/hide ----
   output$comp3_show_hide <- renderUI({
     req(input$raster_comp3_file)
-    actionButton(
-      "comp3_show_hide",
-      label = "",
-      icon = icon("chart-line")
+    div(
+      actionButton(
+        "comp3_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp3_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
     ) %>% 
-      div(title = "Show/hide reference spectrum") %>% 
       column(4, .)
   })
   
@@ -242,16 +301,39 @@ server <- function(input, output, session) {
     )
   )
   
+  observeEvent(
+    input$comp3_bn, 
+    updateActionButton(
+      inputId = "comp3_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp3_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  
+  # ref Show/hide ----
   output$legend_show_hide <- renderUI({
     req(input$raster_file)
-    actionButton(
-      "legend_show_hide",
-      label = "",
-      icon = icon("list")
+    div(
+      actionButton(
+        "legend_show_hide",
+        label = "",
+        icon = icon("list")
+      ), 
+      actionButton(
+        "raster_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide legend, normalize brightness"
     ) %>% 
-      div(title = "Show/hide legend") %>% 
       column(4, .)
   })
+  
+
   
   observeEvent(
     input$legend_show_hide, 
@@ -264,6 +346,16 @@ server <- function(input, output, session) {
     )
   )
   
+  observeEvent(
+    input$raster_bn, 
+    updateActionButton(
+      inputId = "raster_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$raster_bn %% 2) + 1]]
+    )
+  )
   
   
   # Vectors ----
@@ -491,7 +583,8 @@ server <- function(input, output, session) {
       mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$raster_bn %% 2)
       )
     
     vals
@@ -522,7 +615,8 @@ server <- function(input, output, session) {
       mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp0_bn %% 2)
       )
     
     
@@ -553,7 +647,8 @@ server <- function(input, output, session) {
       mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp1_bn %% 2)
       )
     
     geom_line(data = vals, color = cols[3])
@@ -583,7 +678,8 @@ server <- function(input, output, session) {
       mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp2_bn %% 2)
       )
     
     geom_line(data = vals, color = cols[4])
@@ -613,7 +709,8 @@ server <- function(input, output, session) {
       mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp3_bn %% 2)
       )
     
     geom_line(data = vals, color = cols[5])
