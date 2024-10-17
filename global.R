@@ -79,7 +79,7 @@ name_label <- function(x, col) {
     paste0("~", ., collapse = "")
   
   span(
-    span("●", style = glue::glue("color: {col};")),
+    span("█", style = glue::glue("color: {col};")),
     tags$code(x, style = "color: #000000;")
   )
 }
