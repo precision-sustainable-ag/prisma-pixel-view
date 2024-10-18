@@ -17,11 +17,13 @@ make_geojson <- function(lon, lat) {
   )
 }
 
+
 extract_coords_from_string <- function(s) {
   stringr::str_extract_all(s, "[-+]?[0-9]+\\.?[0-9]*")[[1]] %>% 
     as.numeric() %>% 
     na.omit()
 }
+
 
 reproject_coords <- function(x, crs_from, crs_to) {
   st_point(x) %>%
@@ -29,6 +31,7 @@ reproject_coords <- function(x, crs_from, crs_to) {
     st_transform(crs_to) %>%
     st_coordinates()
 }
+
 
 x_breaks <- function(x) {
   brk <- scales::breaks_extended(n = 7)(x)
@@ -40,6 +43,7 @@ x_breaks <- function(x) {
   brk
 }
 
+
 y_labels <- function(brk) {
   lbl <- scales::label_number()(brk)
 
@@ -49,6 +53,7 @@ y_labels <- function(brk) {
   
   lbl
 }
+
 
 put_ll_in_order <- function(x, ref_ll, poss_crs) {
   candidates <- list(x, rev(x))
@@ -71,6 +76,46 @@ put_ll_in_order <- function(x, ref_ll, poss_crs) {
   
   candidates[[which.min(d)]]
 }
+
+
+name_label <- function(x, col, window_w) {
+  x = stringr::str_remove(x, "\\.[a-zA-Z]+$")
+  
+  span(
+    span("█", style = glue::glue("color: {col};")),
+    tags$code(x, style = "color: #000000;"),
+    style = "white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 95%; display: inline-block;"
+  )
+}
+
+
+bnorm <- function(x, normalize = T) {
+  if (!normalize) return(x)
+  
+  x = x/sqrt(sum(x^2))
+}
+
+lowest_dense_corner <- function(x, y) {
+  x_ = cut(x, 3, labels = c("l", "middle", "r"))
+  y_ = cut(y, 3, labels = c("b", "middle", "t"))
+  combs = paste0(y_, x_) %>% 
+    stringr::str_subset("middle", negate = T) %>% 
+    forcats::fct(levels = c("tr", "tl", "br", "bl"))
+  tab = table(combs)
+  lowest = names(which.min(tab))
+  
+  corners = list(
+    "tr" = c(.99, .99),
+    "tl" = c(.01, .99),
+    "br" = c(.99, .01),
+    "bl" = c(.01, .01)
+  )
+  
+  corners[[lowest]]
+}
+
+#cols = viridisLite::inferno(5, end = 0.8)
+cols = c("#000000", scales::hue_pal(h.start = 30)(4)) 
 
 
 wavelengths <- 

@@ -40,18 +40,53 @@ rast_picker <-
     title = 'Select a raster',
     multiple = F
     ) %>% 
-  div(style = "padding-bottom: 1em;")
+  div(style = "padding-bottom: 0.5em;") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("legend_show_hide"))
 
-rast_comp_picker <- 
+rast_comp0_picker <- 
   shinyFilesButton(
-    'raster_comp_file', 
-    label = 'Optional ref. image', 
+    'raster_comp0_file', 
+    label = 'Optional ref. image 1', 
     title = 'Select a raster',
     multiple = F
   ) %>% 
-  div(style = "padding-bottom: 1em") %>% 
+  div(style = "padding-bottom: 0.5em") %>% 
   column(8, .) %>% 
-  fluidRow(uiOutput("comp_show_hide"))
+  fluidRow(uiOutput("comp0_show_hide"))
+
+rast_comp1_picker <- 
+  shinyFilesButton(
+    'raster_comp1_file', 
+    label = 'Optional ref. image 2', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 0.5em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp1_show_hide"))
+
+rast_comp2_picker <- 
+  shinyFilesButton(
+    'raster_comp2_file', 
+    label = 'Optional ref. image 3', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 0.5em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp2_show_hide"))
+
+rast_comp3_picker <- 
+  shinyFilesButton(
+    'raster_comp3_file', 
+    label = 'Optional ref. image 4', 
+    title = 'Select a raster',
+    multiple = F
+  ) %>% 
+  div(style = "padding-bottom: 0.5em") %>% 
+  column(8, .) %>% 
+  fluidRow(uiOutput("comp3_show_hide"))
 
 vect_picker <- 
   shinyFilesButton(
@@ -62,21 +97,6 @@ vect_picker <-
   ) 
 
 
-wv_picker <- 
-  radioButtons(
-    "wv_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
-
-wv_comp_picker <- 
-  radioButtons(
-    "wv_comp_labels", "How are the bands labelled?", 
-    choiceNames = c("Original PRISMA band names", "Numeric Wavelengths"),
-    choiceValues = c("Sequential", "Numeric"),
-    selected = character(0)
-  )
 
 band_legend_component <- 
   fluidRow(
@@ -114,9 +134,14 @@ ui <- fluidPage(
   # actionButton("browser", "browser"),
   wellPanel(
     fluidRow(
-      column(4, rast_picker, wv_picker, band_legend_component),
-      column(4, rast_comp_picker, wv_comp_picker),
-      column(4, vect_picker, uiOutput("vector_selections"), jump_box), 
+      column(4, rast_picker, uiOutput("raster_name")),
+      column(4, rast_comp0_picker, uiOutput("comp0_name")),
+      column(4, span(vect_picker, uiOutput("vector_selections")), jump_box), 
+    ),
+    fluidRow(
+      column(4, rast_comp1_picker, uiOutput("comp1_name")), #TODO display name and color for plot next to file button
+      column(4, rast_comp2_picker, uiOutput("comp2_name")),
+      column(4, rast_comp3_picker, uiOutput("comp3_name")),
     )
   ),
 
