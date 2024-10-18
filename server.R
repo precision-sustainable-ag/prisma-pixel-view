@@ -14,7 +14,6 @@ server <- function(input, output, session) {
   })
   
   
-  
   ## File choosers ----
   shinyFileChoose(
     input, 'raster_file', 
@@ -85,7 +84,10 @@ server <- function(input, output, session) {
   
   output$comp0_name = renderUI({
     req(path_comp0())
-    name_label(basename(path_comp0()), cols[2])
+    div(
+      name_label(basename(path_comp0()), cols[2]),
+      textInput("comp0_human", NULL, value = basename(path_comp0()))
+    )
   })
   
   
@@ -103,7 +105,10 @@ server <- function(input, output, session) {
   
   output$comp1_name = renderUI({
     req(path_comp1())
-    name_label(basename(path_comp1()), cols[3])
+    div(
+      name_label(basename(path_comp1()), cols[3]),
+      textInput("comp1_human", NULL, value = basename(path_comp1()))
+    )
   })
   
   
@@ -121,7 +126,10 @@ server <- function(input, output, session) {
   
   output$comp2_name = renderUI({
     req(path_comp2())
-    name_label(basename(path_comp2()), cols[4])
+    div(
+      name_label(basename(path_comp2()), cols[4]),
+      textInput("comp2_human", NULL, value = basename(path_comp2()))
+    )
   })
   
   
@@ -139,7 +147,10 @@ server <- function(input, output, session) {
   
   output$comp3_name = renderUI({
     req(path_comp3())
-    name_label(basename(path_comp3()), cols[5])
+    div(
+      name_label(basename(path_comp3()), cols[5]),
+      textInput("comp3_human", NULL, value = basename(path_comp3()))
+    )
   })
   
   
@@ -584,7 +595,8 @@ server <- function(input, output, session) {
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band],
-        reflectance = bnorm(reflectance, input$raster_bn %% 2)
+        reflectance = bnorm(reflectance, input$raster_bn %% 2),
+        id = "Original"
       )
     
     vals
@@ -616,11 +628,11 @@ server <- function(input, output, session) {
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band],
-        reflectance = bnorm(reflectance, input$comp0_bn %% 2)
+        reflectance = bnorm(reflectance, input$comp0_bn %% 2),
+        id = input$comp0_human
       )
     
-    
-    geom_line(data = vals, color = cols[2])
+    vals
   })
   
   
@@ -648,10 +660,11 @@ server <- function(input, output, session) {
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band],
-        reflectance = bnorm(reflectance, input$comp1_bn %% 2)
+        reflectance = bnorm(reflectance, input$comp1_bn %% 2),
+        id = input$comp1_human
       )
     
-    geom_line(data = vals, color = cols[3])
+    vals
   })
   
   
@@ -679,10 +692,11 @@ server <- function(input, output, session) {
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band],
-        reflectance = bnorm(reflectance, input$comp2_bn %% 2)
+        reflectance = bnorm(reflectance, input$comp2_bn %% 2),
+        id = input$comp2_human
       )
     
-    geom_line(data = vals, color = cols[4])
+    vals
   })
   
   
@@ -710,10 +724,11 @@ server <- function(input, output, session) {
         band = as.numeric(band),
         wv = wavelengths[band],
         src = wv_src[band],
-        reflectance = bnorm(reflectance, input$comp3_bn %% 2)
+        reflectance = bnorm(reflectance, input$comp3_bn %% 2),
+        id = input$comp3_human
       )
     
-    geom_line(data = vals, color = cols[5])
+    vals
   })
   
   
@@ -745,26 +760,46 @@ server <- function(input, output, session) {
     cell_id <- unique(reflectance_at_point()$cell)
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     
-    ggplot(reflectance_at_point(), aes(wv, reflectance)) +
-      comp0_geom_line() +
-      comp1_geom_line() +
-      comp2_geom_line() +
-      comp3_geom_line() +
-      geom_line(aes(group = src), color = cols[1]) +
+    dat = bind_rows(
+      reflectance_at_point(),
+      comp0_geom_line(),
+      comp1_geom_line(),
+      comp2_geom_line(),
+      comp3_geom_line()
+    ) %>% 
+      mutate(id = forcats::fct_inorder(id))
+    
+    cols_nm = purrr::set_names(
+      cols,
+      c("Original", 
+        input$comp0_human %||% "image1", 
+        input$comp1_human %||% "image2", 
+        input$comp2_human %||% "image3", 
+        input$comp3_human %||% "image4"
+        )
+    ) %>% 
+      forcats::fct_inorder()
+    
+    ggplot(dat, aes(wv, reflectance)) +
+      geom_line(aes(group = paste(src, id), color = id), linewidth = 1.25) +
+      scale_color_manual(values = cols_nm) +
       scale_y_continuous(labels = y_labels) +
       scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
         subtitle = basename(path()),
         x = "wavelength (nm)",
-        y = "reflectance"
+        y = "reflectance",
+        color = NULL
       ) +
       coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
       theme(
         title = element_text(size = 14),
         axis.text = element_text(size = 14),
-        plot.subtitle = element_text(size = 11)
+        plot.subtitle = element_text(size = 11),
+        legend.position = lowest_dense_corner(dat$wv, dat$reflectance),
+        legend.justification = lowest_dense_corner(dat$wv, dat$reflectance)
         )
   })
   

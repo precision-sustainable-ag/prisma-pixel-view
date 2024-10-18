@@ -95,6 +95,24 @@ bnorm <- function(x, normalize = T) {
   x = x/sqrt(sum(x^2))
 }
 
+lowest_dense_corner <- function(x, y) {
+  x_ = cut(x, 3, labels = c("l", "middle", "r"))
+  y_ = cut(y, 3, labels = c("b", "middle", "t"))
+  combs = paste0(y_, x_) %>% 
+    stringr::str_subset("middle", negate = T) %>% 
+    forcats::fct(levels = c("tr", "tl", "br", "bl"))
+  tab = table(combs)
+  lowest = names(which.min(tab))
+  
+  corners = list(
+    "tr" = c(.99, .99),
+    "tl" = c(.01, .99),
+    "br" = c(.99, .01),
+    "bl" = c(.01, .01)
+  )
+  
+  corners[[lowest]]
+}
 
 #cols = viridisLite::inferno(5, end = 0.8)
 cols = c("#000000", scales::hue_pal(h.start = 30)(4)) 
