@@ -13,16 +13,36 @@ server <- function(input, output, session) {
     browser()
   })
   
+  
+  ## File choosers ----
   shinyFileChoose(
     input, 'raster_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
     )
   
   shinyFileChoose(
-    input, 'raster_comp_file', 
+    input, 'raster_comp0_file', 
     roots = c(wd = '.'), 
-    filetypes = c('tif')
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp1_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp2_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
+  )
+  
+  shinyFileChoose(
+    input, 'raster_comp3_file', 
+    roots = c(wd = '.'), 
+    filetypes = c('tif', '', 'envi')
   )
   
   shinyFileChoose(
@@ -32,45 +52,324 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # ref Path, raster, name ----
   path <- reactive({
     parseFilePaths(c(wd = "."), input$raster_file)[["datapath"]]
   })
   
-  raster <- reactive({ rast(path()) })
+  raster <- reactive({     
+    if (!length(path())) { return(NULL) }
+    rast(path()) 
+  })
   r_crs <- reactive({ as.numeric(crs(raster(), describe = T)[["code"]]) })
+
+  output$raster_name = renderUI({
+    req(path())
+    name_label(basename(path()), cols[1])
+    })
+
   
   
-  path_comp <- reactive({
-    if (!is.list(input$raster_comp_file)) { return(NULL) }
-    parseFilePaths(c(wd = "."), input$raster_comp_file)[["datapath"]]
+  # 0 Path, raster, name ----
+  path_comp0 <- reactive({
+    if (!is.list(input$raster_comp0_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp0_file)[["datapath"]]
   })
   
-  raster_comp <- reactive({ 
-    if (!length(path_comp())) { return(NULL) }
-    rast(path_comp()) 
+  raster_comp0 <- reactive({ 
+    if (!length(path_comp0())) { return(NULL) }
+    rast(path_comp0()) 
     })
   
-  output$comp_show_hide <- renderUI({
-    req(input$raster_comp_file)
-    actionButton(
-      "comp_show_hide",
-      "",
-      icon = icon("eye-slash")
-      ) %>% 
+  output$comp0_name = renderUI({
+    req(path_comp0())
+    div(
+      name_label(basename(path_comp0()), cols[2]),
+      textInput("comp0_human", NULL, value = basename(path_comp0()))
+    )
+  })
+  
+  
+  
+  # 1 Path, raster, name ----
+  path_comp1 <- reactive({
+    if (!is.list(input$raster_comp1_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp1_file)[["datapath"]]
+  })
+  
+  raster_comp1 <- reactive({ 
+    if (!length(path_comp1())) { return(NULL) }
+    rast(path_comp1()) 
+  })
+  
+  output$comp1_name = renderUI({
+    req(path_comp1())
+    div(
+      name_label(basename(path_comp1()), cols[3]),
+      textInput("comp1_human", NULL, value = basename(path_comp1()))
+    )
+  })
+  
+  
+  
+  # 2 Path, raster, name ----
+  path_comp2 <- reactive({
+    if (!is.list(input$raster_comp2_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp2_file)[["datapath"]]
+  })
+  
+  raster_comp2 <- reactive({ 
+    if (!length(path_comp2())) { return(NULL) }
+    rast(path_comp2()) 
+  })
+  
+  output$comp2_name = renderUI({
+    req(path_comp2())
+    div(
+      name_label(basename(path_comp2()), cols[4]),
+      textInput("comp2_human", NULL, value = basename(path_comp2()))
+    )
+  })
+  
+  
+  
+  # 3 Path, raster, name ----
+  path_comp3 <- reactive({
+    if (!is.list(input$raster_comp3_file)) { return(NULL) }
+    parseFilePaths(c(wd = "."), input$raster_comp3_file)[["datapath"]]
+  })
+  
+  raster_comp3 <- reactive({ 
+    if (!length(path_comp3())) { return(NULL) }
+    rast(path_comp3()) 
+  })
+  
+  output$comp3_name = renderUI({
+    req(path_comp3())
+    div(
+      name_label(basename(path_comp3()), cols[5]),
+      textInput("comp3_human", NULL, value = basename(path_comp3()))
+    )
+  })
+  
+  
+  
+  # 0 Show/hide ----
+  output$comp0_show_hide <- renderUI({
+    req(input$raster_comp0_file)
+    div(
+      actionButton(
+        "comp0_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp0_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
+    ) %>% 
       column(4, .)
   })
   
   observeEvent(
-    input$comp_show_hide, 
+    input$comp0_show_hide, 
     updateActionButton(
-      inputId = "comp_show_hide",
+      inputId = "comp0_show_hide",
       icon = list(
-        icon("eye-slash"), 
-        icon("eye")
-      )[[(input$comp_show_hide %% 2) + 1]]
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp0_show_hide %% 2) + 1]]
     )
   )
   
+  observeEvent(
+    input$comp0_bn, 
+    updateActionButton(
+      inputId = "comp0_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp0_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  # 1 Show/hide ----
+  output$comp1_show_hide <- renderUI({
+    req(input$raster_comp1_file)
+    div(
+      actionButton(
+        "comp1_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp1_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
+    ) %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp1_show_hide, 
+    updateActionButton(
+      inputId = "comp1_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp1_show_hide %% 2) + 1]]
+    )
+  )
+  
+  observeEvent(
+    input$comp1_bn, 
+    updateActionButton(
+      inputId = "comp1_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp1_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  
+  # 2 Show/hide ----
+  output$comp2_show_hide <- renderUI({
+    req(input$raster_comp2_file)
+    div(
+      actionButton(
+        "comp2_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp2_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
+    ) %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp2_show_hide, 
+    updateActionButton(
+      inputId = "comp2_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp2_show_hide %% 2) + 1]]
+    )
+  )
+  
+  observeEvent(
+    input$comp2_bn, 
+    updateActionButton(
+      inputId = "comp2_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp2_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  # 3 Show/hide ----
+  output$comp3_show_hide <- renderUI({
+    req(input$raster_comp3_file)
+    div(
+      actionButton(
+        "comp3_show_hide",
+        label = "",
+        icon = icon("chart-line")
+      ),
+      actionButton(
+        "comp3_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide/normalize ref. spectrum"
+    ) %>% 
+      column(4, .)
+  })
+  
+  observeEvent(
+    input$comp3_show_hide, 
+    updateActionButton(
+      inputId = "comp3_show_hide",
+      icon = list(
+        icon("chart-line", style = "filter: invert(80%);"), 
+        icon("chart-line")
+      )[[(input$comp3_show_hide %% 2) + 1]]
+    )
+  )
+  
+  observeEvent(
+    input$comp3_bn, 
+    updateActionButton(
+      inputId = "comp3_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$comp3_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  
+  # ref Show/hide ----
+  output$legend_show_hide <- renderUI({
+    req(input$raster_file)
+    div(
+      actionButton(
+        "legend_show_hide",
+        label = "",
+        icon = icon("list")
+      ), 
+      actionButton(
+        "raster_bn",
+        label = "",
+        icon = icon("down-left-and-up-right-to-center")
+      ),
+      title = "Show/hide legend, normalize brightness"
+    ) %>% 
+      column(4, .)
+  })
+  
+
+  
+  observeEvent(
+    input$legend_show_hide, 
+    updateActionButton(
+      inputId = "legend_show_hide",
+      icon = list(
+        icon("list"), 
+        icon("list", style = "filter: invert(80%);")
+      )[[(input$legend_show_hide %% 2) + 1]]
+    )
+  )
+  
+  observeEvent(
+    input$raster_bn, 
+    updateActionButton(
+      inputId = "raster_bn",
+      icon = list(
+        icon("down-left-and-up-right-to-center"),
+        icon("up-right-and-down-left-from-center", style = "filter: invert(80%);")
+      )[[(input$raster_bn %% 2) + 1]]
+    )
+  )
+  
+  
+  # Vectors ----
   vector_path <- reactive({
     parseFilePaths(c(wd = "."), input$vector_file)[["datapath"]]
   })
@@ -97,29 +396,32 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  
+  # Map ----
   output$map <- renderLeaflet({
     req(path())
     
-    input$reset
-
     bb <- 
       as.polygons(raster(), extent = T) %>% 
       st_as_sf() %>% 
       st_transform(4326) %>% 
       st_bbox()
     
+    band = if(length(names(raster())) >= 40) { 40 } else { 1 }
+    
     leaflet() %>%
       addProviderTiles(
         "CartoDB.Positron",
         options = providerTileOptions(opacity = 1, attribution = "")
       ) %>%
-      addGeotiff(
-        file = path(), bands = 1, opacity = 0.6, # TODO update bands with picker
+      addGeoRaster(
+        stars::st_as_stars(raster())[,,,band], # TODO update bands with picker
         colorOptions = colorOptions(
           palette = c("#00000000", rev(viridis::magma(255)))
         ),
-        resolution = 72
-      ) %>%
+        resolution = 72, opacity = 0.6
+      ) %>% 
       addProviderTiles(
         "CartoDB.PositronOnlyLabels",
         options = providerTileOptions(opacity = 0.75, attribution = "")
@@ -127,10 +429,43 @@ server <- function(input, output, session) {
       addHomeButton(
         ext = bb, position = "topleft",
         group = "↺ Reset"
-      )
+      ) %>% 
+      fitBounds(bb[[1]], bb[[2]], bb[[3]], bb[[4]])
   })
   
   
+  
+  # Legend ----
+  observeEvent(
+    input$legend_show_hide, {
+      req(raster())
+      #browser()
+      rv <- terra::minmax(raster()[[1]]) %>% as.numeric() # TODO update band
+    
+      if (input$legend_show_hide %% 2) {
+        leafletProxy("map") %>% 
+          addLegend(
+            bins = scales::pretty_breaks()(rv) %>% 
+              scales::rescale(rev(rv), rv) %>% 
+              rev(),
+            values = rv,
+            pal = leaflet::colorNumeric((viridis::magma(255)), rv),
+            labFormat = labelFormat(
+              transform = function(x) {scales::rescale(x, rev(rv), rv)}
+              ),
+            layerId = "legend",
+            opacity = 0.8
+          ) 
+      } else {
+        leafletProxy("map") %>% 
+          removeControl("legend")
+      }
+    }
+  )
+
+  
+  
+  # Vectors show/hide ----
   # what a silly hack to make this fire when the list becomes empty
   observeEvent(
     c(input$vector_show_hide, "___placeholder___"), {
@@ -174,27 +509,34 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
+  # Jump coords ----
   typed_coords <- reactiveValues(pt = NULL)
   
   observeEvent(
     input$jump_text, {
       
     jump_c <- extract_coords_from_string(input$jump_text)
+    coords <- NaN
 
     if (length(jump_c) == 0) {
       leafletProxy("map") %>%
         removeMarker("typed_point")
     }
     
-    req(length(jump_c) == 2)
-
-    if (any(abs(jump_c) > 180)) {
-      # reproject 
-      #   (move this logic into put_ll_in_order, add crs arg)
+    if (length(jump_c) == 1) {
+      coords <- 
+        terra::xyFromCell(raster(), jump_c) %>% 
+        reproject_coords(r_crs(), 4326)
     }
-
-    mc <- input$map_center[c("lng", "lat")] %>% unlist()
-    coords <- put_ll_in_order(jump_c, mc)
+    
+    if (length(jump_c) == 2) {
+      mc <- input$map_center[c("lng", "lat")] %>% unlist()
+      coords <- put_ll_in_order(jump_c, mc, r_crs())
+    } 
+    
+    req(all(is.finite(coords)))
     
     leafletProxy("map") %>%
       addCircleMarkers(
@@ -217,6 +559,9 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
+  # Click coords ----
   # TODO: If something is pasted before the map is clicked on init,
   #   the graph doesn't fire. But behavior is normal after map click.
   clicked_coords <- reactive({
@@ -230,69 +575,165 @@ server <- function(input, output, session) {
     }
   })
   
+  
+  
+  # ref Reflectance ----
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
+
+    vals <- 
+      extract(raster(), clicked_coords(), cells = T)
+    
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
     
     vals <- 
-      extract(raster(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
       tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
-
-    if (input$wv_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$raster_bn %% 2),
+        id = "Original"
       )
-    } else if (input$wv_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
     vals
   })
   
-  comp_geom_line <- reactive({
+  
+  
+  
+  # 0 Reflectance ----
+  comp0_geom_line <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_comp_labels)
 
-    if (!length(raster_comp()) || (input$comp_show_hide %% 2)) { return(NULL) }
+    if (
+      !length(raster_comp0()) || 
+        (input$comp0_show_hide %% 2)
+      ) { return(NULL) }
     
     vals <- 
-      extract(raster_comp(), clicked_coords(), cell = T) %>% 
-      dplyr::select(cell, matches("[.0-9]+$")) %>%
-      rename_all(~stringr::str_extract(., "cell$|[.0-9]+$")) %>% 
-      tidyr::pivot_longer(cols = -cell) %>% 
-      rename(band = name, reflectance = value) 
+      extract(raster_comp0(), clicked_coords(), cells = T)
     
-    if (input$wv_comp_labels == "Sequential") {
-      vals <- mutate(
-        vals, 
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
         band = as.numeric(band),
         wv = wavelengths[band],
-        src = wv_src[band]
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp0_bn %% 2),
+        id = input$comp0_human
       )
-    } else if (input$wv_comp_labels == "Numeric") {
-      vals <- mutate(
-        vals, 
-        band = as.numeric(band),
-        wv = band,
-        src = 1
-      )
-    }
     
-    geom_line(data = vals, color = "red")
+    vals
   })
   
   
+  
+  # 1 Reflectance ----
+  comp1_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp1()) || 
+      (input$comp1_show_hide %% 2)
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp1(), clicked_coords(), cells = T)
+    
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp1_bn %% 2),
+        id = input$comp1_human
+      )
+    
+    vals
+  })
+  
+  
+  
+  # 2 Reflectance ----
+  comp2_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp2()) || 
+      (input$comp2_show_hide %% 2)
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp2(), clicked_coords(), cells = T)
+    
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp2_bn %% 2),
+        id = input$comp2_human
+      )
+    
+    vals
+  })
+  
+  
+  
+  # 3 Reflectance ----
+  comp3_geom_line <- reactive({
+    req(is.numeric(input$map_click[["lng"]]))
+    
+    if (
+      !length(raster_comp3()) || 
+      (input$comp3_show_hide %% 2) 
+    ) { return(NULL) }
+    
+    vals <- 
+      extract(raster_comp3(), clicked_coords(), cells = T)
+    
+    new_names = c("cell", seq.int(length(names(vals)) - 1))
+    
+    vals <- 
+      vals %>% 
+      purrr::set_names(new_names) %>% 
+      tidyr::pivot_longer(cols = -cell) %>% 
+      rename(band = name, reflectance = value) %>% 
+      mutate(
+        band = as.numeric(band),
+        wv = wavelengths[band],
+        src = wv_src[band],
+        reflectance = bnorm(reflectance, input$comp3_bn %% 2),
+        id = input$comp3_human
+      )
+    
+    vals
+  })
+  
+  
+  
+  # Plot zoom ----
   plot_ranges <- reactiveValues(x = NULL, y = NULL)
   
   # When a double-click happens, check if there's a brush on the plot.
@@ -307,46 +748,75 @@ server <- function(input, output, session) {
   )
   
   
+  
+  # Plot ----
   output$plot <- renderPlot({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
+
+  #  browser()
     
     focus_tag <- if (!is.null(plot_ranges$x)) { ", subset of values" }
     cell_id <- unique(reflectance_at_point()$cell)
     title <- paste0("Cell number: ", cell_id, focus_tag, collapse = "")
     
-    ggplot(reflectance_at_point(), aes(wv, reflectance)) +
-      comp_geom_line() +
-      geom_line(aes(group = src)) +
+    dat = bind_rows(
+      reflectance_at_point(),
+      comp0_geom_line(),
+      comp1_geom_line(),
+      comp2_geom_line(),
+      comp3_geom_line()
+    ) %>% 
+      mutate(id = forcats::fct_inorder(id))
+    
+    cols_nm = purrr::set_names(
+      cols,
+      c("Original", 
+        input$comp0_human %||% "image1", 
+        input$comp1_human %||% "image2", 
+        input$comp2_human %||% "image3", 
+        input$comp3_human %||% "image4"
+        )
+    ) %>% 
+      forcats::fct_inorder()
+    
+    ggplot(dat, aes(wv, reflectance)) +
+      geom_line(aes(group = paste(src, id), color = id), linewidth = 1.25) +
+      scale_color_manual(values = cols_nm) +
       scale_y_continuous(labels = y_labels) +
       scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
         subtitle = basename(path()),
         x = "wavelength (nm)",
-        y = "reflectance"
+        y = "reflectance",
+        color = NULL
       ) +
       coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
       theme(
         title = element_text(size = 14),
         axis.text = element_text(size = 14),
-        plot.subtitle = element_text(size = 11)
+        plot.subtitle = element_text(size = 11),
+        legend.position = lowest_dense_corner(dat$wv, dat$reflectance),
+        legend.justification = lowest_dense_corner(dat$wv, dat$reflectance)
         )
   })
   
   output$plot_helper_text <- renderUI({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
-    req(input$wv_labels)
-    
+
     div("Click-and-drag to brush a region, double-click to set/reset selection.")
   })
   
+  
+  
+  # Selection display ----
   output$selected_point <-  renderUI({
     
     req(is.numeric(input$map_click[["lng"]]))
+    req(raster())
     
     gj <- make_geojson(
       input$map_click[["lng"]], 
