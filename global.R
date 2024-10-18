@@ -96,6 +96,9 @@ bnorm <- function(x, normalize = T) {
 }
 
 lowest_dense_corner <- function(x, y) {
+  x = x[!is.na(x) & !is.na(y)]
+  y = y[!is.na(x) & !is.na(y)]
+  
   x_ = cut(x, 3, labels = c("l", "middle", "r"))
   y_ = cut(y, 3, labels = c("b", "middle", "t"))
   combs = paste0(y_, x_) %>% 
