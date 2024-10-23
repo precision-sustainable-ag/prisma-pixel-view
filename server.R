@@ -596,7 +596,8 @@ server <- function(input, output, session) {
         wv = wavelengths[band],
         src = wv_src[band],
         reflectance = bnorm(reflectance, input$raster_bn %% 2),
-        id = "Original"
+        id = "Original",
+        sensor = "PRISMA"
       )
     
     vals
@@ -722,10 +723,11 @@ server <- function(input, output, session) {
       rename(band = name, reflectance = value) %>% 
       mutate(
         band = as.numeric(band),
-        wv = wavelengths[band],
-        src = wv_src[band],
+        wv = hls_wavelengths[band],
+        src = hls_wv_src[band],
         reflectance = bnorm(reflectance, input$comp3_bn %% 2),
-        id = input$comp3_human
+        id = input$comp3_human,
+        sensor = "HLS"
       )
     
     vals
@@ -777,13 +779,29 @@ server <- function(input, output, session) {
         input$comp2_human %||% "image3", 
         input$comp3_human %||% "image4"
         )
+    )
+    
+    col_brks = purrr::set_names(
+      c("Original", 
+        input$comp0_human %||% "image1", 
+        input$comp1_human %||% "image2", 
+        input$comp2_human %||% "image3", 
+        input$comp3_human %||% "image4"
+      )
     ) %>% 
       forcats::fct_inorder()
-    
+
     ggplot(dat, aes(wv, reflectance)) +
-      geom_line(aes(group = paste(src, id), color = id), linewidth = 1.25) +
-      scale_color_manual(values = cols_nm) +
-      scale_y_continuous(labels = y_labels) +
+      geom_line(
+        data = function(d) filter(d, sensor != "HLS" | is.na(sensor)),
+        aes(group = paste(src, id), color = id), linewidth = 1.25
+        ) +
+      geom_point(
+        data = function(d) filter(d, sensor == "HLS"),
+        aes(color = id), size = 3
+      ) +
+      scale_color_manual(values = cols, breaks = col_brks) +
+      scale_y_continuous(labels = y_labels, limits = c(0,1)) +
       scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
@@ -794,6 +812,7 @@ server <- function(input, output, session) {
       ) +
       coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
+    # guides(color = guide_legend(override.aes = list(size = 10, linewidth = 10))) +
       theme(
         title = element_text(size = 14),
         axis.text = element_text(size = 14),
