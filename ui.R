@@ -80,7 +80,7 @@ rast_comp2_picker <-
 rast_comp3_picker <- 
   shinyFilesButton(
     'raster_comp3_file', 
-    label = 'Optional ref. image 4', 
+    label = 'Optional HLS scene', 
     title = 'Select a raster',
     multiple = F
   ) %>% 

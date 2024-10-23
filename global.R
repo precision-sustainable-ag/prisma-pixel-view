@@ -149,3 +149,7 @@ wavelengths <-
 
 wv_src <- cumsum(wavelengths < lag(wavelengths, default = F))
 
+hls_wavelengths <- c(443, 490, 560, 665, 705, 740, 783, 842, 945, 1375,1610,2190,865)
+
+hls_wv_src <- cumsum(hls_wavelengths < lag(hls_wavelengths, default = F))
+
