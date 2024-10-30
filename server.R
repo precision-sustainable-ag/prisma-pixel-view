@@ -399,6 +399,7 @@ server <- function(input, output, session) {
   
   
   # Map ----
+  # TODO: show extent of each raster if they don't coincide with the main image
   output$map <- renderLeaflet({
     req(path())
     
@@ -440,7 +441,9 @@ server <- function(input, output, session) {
     input$legend_show_hide, {
       req(raster())
       #browser()
-      rv <- terra::minmax(raster()[[1]]) %>% as.numeric() # TODO update band
+      band = if(length(names(raster())) >= 40) { 40 } else { 1 }
+      
+      rv <- terra::minmax(raster()[[band]]) %>% as.numeric()
     
       if (input$legend_show_hide %% 2) {
         leafletProxy("map") %>% 
@@ -564,12 +567,15 @@ server <- function(input, output, session) {
   # Click coords ----
   # TODO: If something is pasted before the map is clicked on init,
   #   the graph doesn't fire. But behavior is normal after map click.
+  # TODO: if a point outside the raster is clicked, clear the coords instead of error
   clicked_coords <- reactive({
     if (is.null(typed_coords$pt)) {
-      reproject_coords(
+      clicked = reproject_coords(
         c(input$map_click[["lng"]], input$map_click[["lat"]]),
         4326, r_crs()
       )
+
+      if (all(is.na(extract(raster(), clicked)))) { return(NULL) } else { return(clicked) }
     } else {
       typed_coords$pt
     }
@@ -580,6 +586,7 @@ server <- function(input, output, session) {
   # ref Reflectance ----
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
+    req(clicked_coords())
 
     vals <- 
       extract(raster(), clicked_coords(), cells = T)
@@ -755,6 +762,7 @@ server <- function(input, output, session) {
   output$plot <- renderPlot({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
+    req(reflectance_at_point())
 
   #  browser()
     
@@ -836,6 +844,7 @@ server <- function(input, output, session) {
     
     req(is.numeric(input$map_click[["lng"]]))
     req(raster())
+    req(clicked_coords())
     
     gj <- make_geojson(
       input$map_click[["lng"]], 
