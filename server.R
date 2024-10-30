@@ -399,6 +399,7 @@ server <- function(input, output, session) {
   
   
   # Map ----
+  # TODO: show extent of each raster if they don't coincide with the main image
   output$map <- renderLeaflet({
     req(path())
     
@@ -440,7 +441,9 @@ server <- function(input, output, session) {
     input$legend_show_hide, {
       req(raster())
       #browser()
-      rv <- terra::minmax(raster()[[1]]) %>% as.numeric() # TODO update band
+      band = if(length(names(raster())) >= 40) { 40 } else { 1 }
+      
+      rv <- terra::minmax(raster()[[band]]) %>% as.numeric()
     
       if (input$legend_show_hide %% 2) {
         leafletProxy("map") %>% 
@@ -564,12 +567,15 @@ server <- function(input, output, session) {
   # Click coords ----
   # TODO: If something is pasted before the map is clicked on init,
   #   the graph doesn't fire. But behavior is normal after map click.
+  # TODO: if a point outside the raster is clicked, clear the coords instead of error
   clicked_coords <- reactive({
     if (is.null(typed_coords$pt)) {
-      reproject_coords(
+      clicked = reproject_coords(
         c(input$map_click[["lng"]], input$map_click[["lat"]]),
         4326, r_crs()
       )
+
+      if (all(is.na(extract(raster(), clicked)))) { return(NULL) } else { return(clicked) }
     } else {
       typed_coords$pt
     }
@@ -580,6 +586,7 @@ server <- function(input, output, session) {
   # ref Reflectance ----
   reflectance_at_point <- reactive({
     req(is.numeric(input$map_click[["lng"]]))
+    req(clicked_coords())
 
     vals <- 
       extract(raster(), clicked_coords(), cells = T)
@@ -596,7 +603,8 @@ server <- function(input, output, session) {
         wv = wavelengths[band],
         src = wv_src[band],
         reflectance = bnorm(reflectance, input$raster_bn %% 2),
-        id = "Original"
+        id = "Original",
+        sensor = "PRISMA"
       )
     
     vals
@@ -722,10 +730,11 @@ server <- function(input, output, session) {
       rename(band = name, reflectance = value) %>% 
       mutate(
         band = as.numeric(band),
-        wv = wavelengths[band],
-        src = wv_src[band],
+        wv = hls_wavelengths[band],
+        src = hls_wv_src[band],
         reflectance = bnorm(reflectance, input$comp3_bn %% 2),
-        id = input$comp3_human
+        id = input$comp3_human,
+        sensor = "HLS"
       )
     
     vals
@@ -753,6 +762,7 @@ server <- function(input, output, session) {
   output$plot <- renderPlot({
     req(path())
     req(is.numeric(input$map_click[["lng"]]))
+    req(reflectance_at_point())
 
   #  browser()
     
@@ -777,13 +787,29 @@ server <- function(input, output, session) {
         input$comp2_human %||% "image3", 
         input$comp3_human %||% "image4"
         )
+    )
+    
+    col_brks = purrr::set_names(
+      c("Original", 
+        input$comp0_human %||% "image1", 
+        input$comp1_human %||% "image2", 
+        input$comp2_human %||% "image3", 
+        input$comp3_human %||% "image4"
+      )
     ) %>% 
       forcats::fct_inorder()
-    
+
     ggplot(dat, aes(wv, reflectance)) +
-      geom_line(aes(group = paste(src, id), color = id), linewidth = 1.25) +
-      scale_color_manual(values = cols_nm) +
-      scale_y_continuous(labels = y_labels) +
+      geom_line(
+        data = function(d) filter(d, sensor != "HLS" | is.na(sensor)),
+        aes(group = paste(src, id), color = id), linewidth = 1.25
+        ) +
+      geom_point(
+        data = function(d) filter(d, sensor == "HLS"),
+        aes(color = id), size = 3
+      ) +
+      scale_color_manual(values = cols, breaks = col_brks) +
+      scale_y_continuous(labels = y_labels, limits = c(0,1)) +
       scale_x_continuous(breaks = x_breaks) +
       labs(
         title = title,
@@ -794,6 +820,7 @@ server <- function(input, output, session) {
       ) +
       coord_cartesian(xlim = plot_ranges$x, ylim = plot_ranges$y) +
       theme_bw() +
+    # guides(color = guide_legend(override.aes = list(size = 10, linewidth = 10))) +
       theme(
         title = element_text(size = 14),
         axis.text = element_text(size = 14),
@@ -817,6 +844,7 @@ server <- function(input, output, session) {
     
     req(is.numeric(input$map_click[["lng"]]))
     req(raster())
+    req(clicked_coords())
     
     gj <- make_geojson(
       input$map_click[["lng"]], 
